@@ -9,7 +9,12 @@
   "email_envio": "datafest@esan.edu.pe",
   "tipo_problema": "clasificacion_binaria",
   "target_col": "default_90d",
-  "target_descripcion": "1 = Default (mora >90 días), 0 = Al día / Pagador puntual",
+  "target_raw_col": "target",
+  "target_mapping": {
+    "good": 0,
+    "bad": 1
+  },
+  "target_descripcion": "Dataset oficial: target='bad' se mapea a default_90d=1; target='good' se mapea a default_90d=0",
   "id_cols": [
     "id_cliente"
   ],
@@ -29,6 +34,11 @@
   },
   "data_train_path": "dataInicial/dataset_credito-train.xlsx",
   "data_test_path": "dataInicial/dataset_credito-test.xlsx",
+  "data_train_rows": 800,
+  "data_test_rows": 200,
+  "data_train_cols": 22,
+  "data_test_cols": 23,
+  "dataset_oficial": "German Credit adaptado por el caso oficial FinanCrece",
   "submission_cols": [
     "id_cliente",
     "prob_default"
@@ -51,18 +61,44 @@
     "nota": "Todos los valores en USD. VN=True Negative (pagador aprobado), FP=False Positive (pagador rechazado erróneamente), FN=False Negative (moroso aprobado), VP=True Positive (default evitado)"
   },
   "variables_clave": {
-    "id_cliente": "ID único del cliente — excluir del entrenamiento",
-    "default_90d": "TARGET: mora >90 días (0=pagador, 1=default)",
-    "edad": "Edad del solicitante — validar negativos/outliers",
-    "ingreso_mensual": "Ingreso neto declarado — nulos = informalidad/sin doc",
-    "score_buro": "Score historial crediticio externo — NULOS = SIN HISTORIAL FORMAL",
-    "dias_mora_prev": "Días máximos de mora previa — NULOS = SIN DEUDAS/ATRASOS PREVIOS",
-    "ratio_endeudamiento": "Deuda total / Ingresos — crear versión safe y capeada",
-    "tipo_empleo": "Relación laboral: Dependiente/Independiente",
-    "zona_geografica": "Lima, Norte, Sur, Centro, Oriente",
-    "canal_captacion": "Presencial, App, Web, Asesor"
+    "id_cliente": "ID único del cliente — excluir del entrenamiento y usar en submission",
+    "id_adicional": "ID auxiliar presente solo en test — no usar para entrenar",
+    "target": "Columna raw del train: good/bad",
+    "default_90d": "TARGET canónico derivado: 0=good/pagador, 1=bad/default",
+    "Probabilidad": "Columna vacía del test oficial; el entregable final usa prob_default",
+    "checking_status": "Estado de cuenta corriente; señal fuerte de liquidez/riesgo",
+    "duration": "Duración del préstamo en meses",
+    "credit_history": "Historial crediticio del solicitante",
+    "purpose": "Destino del crédito",
+    "credit_amount": "Monto del crédito solicitado",
+    "savings_status": "Nivel de ahorros declarados",
+    "employment": "Antigüedad/estabilidad laboral",
+    "installment_commitment": "Porcentaje de ingreso comprometido al pago",
+    "personal_status": "Estado civil/género codificado en el dataset",
+    "other_parties": "Garantes/co-deudores",
+    "residence_since": "Tiempo de residencia",
+    "property_magnitude": "Tipo/magnitud de propiedad",
+    "age": "Edad del solicitante",
+    "other_payment_plans": "Otros planes de pago",
+    "housing": "Situación de vivienda",
+    "existing_credits": "Número de créditos existentes",
+    "job": "Tipo de empleo/oficio",
+    "num_dependents": "Número de dependientes",
+    "own_telephone": "Tenencia de teléfono",
+    "foreign_worker": "Indicador de trabajador extranjero"
   },
-  "leakage_cols_conocidas": [],
+  "variables_no_presentes_en_data_oficial": [
+    "score_buro",
+    "ingreso_mensual",
+    "dias_mora_prev",
+    "ratio_endeudamiento",
+    "tipo_empleo",
+    "zona_geografica",
+    "canal_captacion"
+  ],
+  "leakage_cols_conocidas": [
+    "target"
+  ],
   "leakage_cols_sospechosas": [],
   "regla_anti_leakage": "No aplicar imputación, encoding, escalado, WOE ni target encoding antes del split",
   "umbrales_excelencia": {
@@ -73,13 +109,13 @@
   },
   "feature_builder_path": "src/feature_builder.py",
   "supuestos": [
-    "[SUPUESTO] Periodo de datos: 2022-2024, sujeto a confirmación en datos reales",
-    "[SUPUESTO] Tasa de default estimada ~22% en train según documentación previa",
     "[SUPUESTO] Costo operacional de evaluación manual en banda media: no provisto por el caso",
     "[SUPUESTO] Factor exposición banda media = 50% de línea completa",
     "[SUPUESTO] Pérdida promedio por default = $3,000 USD",
     "[SUPUESTO] Ganancia neta por buen pagador = $450 USD",
-    "[SUPUESTO] Costo de rechazo erróneo = $150 USD"
+    "[SUPUESTO] Costo de rechazo erróneo = $150 USD",
+    "[DATO] Train oficial: 800 filas, 564 good y 236 bad; tasa default = 29.5%",
+    "[DATO] Test oficial: 200 filas, sin target, con columna Probabilidad vacía"
   ],
   "status": "READY",
   "version": "1.0",

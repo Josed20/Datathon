@@ -13,9 +13,11 @@ El Orquestador (`ORQUESTADOR_DATATHON.md`) debe proveer la siguiente informació
 | Input | Ejemplo | Obligatorio |
 |---|---|:---:|
 | `TARGET_COL` | `"default_90d"` | ✅ |
+| `TARGET_RAW_COL` | `"target"` | ✅ si el Excel trae `good`/`bad` |
+| `TARGET_MAPPING` | `{"good": 0, "bad": 1}` | ✅ si aplica |
 | `TIPO_PROBLEMA` | `"clasificacion_binaria"` | ✅ |
 | `METRICA_JURADO` | `"roc_auc"` | ✅ |
-| `DATA_PATHS` | `["dataInicial/[archivo_train_provisto]"]` | ✅ |
+| `DATA_PATHS` | `["dataInicial/dataset_credito-train.xlsx"]` | ✅ |
 | `ID_COLS` | `["id_cliente"]` | ✅ |
 | `CONTEXTO_NEGOCIO` | `"Scoring de credito para default/mora >90 dias"` | ✅ |
 | `VALIDATION_STRATEGY` | `"stratified_split"` | ✅ |
@@ -32,19 +34,24 @@ from pathlib import Path
 
 PROJECT_ROOT   = Path(".")
 TARGET_COL     = "default_90d"
+TARGET_RAW_COL = "target"
+TARGET_MAPPING = {"good": 0, "bad": 1}
 TIPO_PROBLEMA  = "clasificacion_binaria"
 METRICA_JURADO = "roc_auc"
-DATA_PATHS     = [PROJECT_ROOT / "dataInicial" / "[archivo_train_provisto]"]
+DATA_PATHS     = [PROJECT_ROOT / "dataInicial" / "dataset_credito-train.xlsx"]
+TEST_RAW_PATH  = PROJECT_ROOT / "dataInicial" / "dataset_credito-test.xlsx"
 ID_COLS        = ["id_cliente"]
 VALIDATION_STRATEGY = "stratified_split"  # cambiar a temporal_split solo si existe fecha/periodo confiable
 PERIODO_COL    = None
 GROUP_COL      = None
 DATE_COLS      = []
-LEAKAGE_COLS   = []                  # variables marcadas como fuga por el Orquestador
+LEAKAGE_COLS   = [TARGET_RAW_COL]    # target raw no puede entrar como predictor
 LEAKAGE_REVIEW_DONE = False         # Se marca True solo despues de revisar columnas reales
 FEATURE_BUILDER_PATH = PROJECT_ROOT / "src" / "feature_builder.py"
 RANDOM_STATE   = 42
 ```
+
+**Nota del caso oficial actual:** el train trae `target` con valores `good`/`bad`. El primer paso del EDA es crear `default_90d = 1(target == "bad")` y excluir `target` de todo set de features. El test trae `Probabilidad` vacía; esa columna tampoco debe usarse como predictor.
 
 **Frontera con Doc 2:** este EDA puede crear features fila a fila, indicadores de missing y reportes exploratorios. El split, la imputacion, el encoding, el escalado, la winsorizacion aprendida de cuantiles y cualquier seleccion final que use validacion pertenecen al Doc 2 y se ajustan solo con train.
 

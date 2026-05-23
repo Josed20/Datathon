@@ -105,11 +105,12 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 | Campo | Valor |
 |---|---|
 | Tipo de problema | Clasificación binaria altamente desbalanceada (Default / No Default) |
-| Variable objetivo (nombre exacto de la columna) | `default_90d` |
-| Codificación del target | 0 = Al día / Pagador puntual; 1 = Default (mora mayor a 90 días) |
+| Variable objetivo canónica | `default_90d` |
+| Variable objetivo original en Excel | `target` |
+| Codificación del target | `target='good'` → `default_90d=0`; `target='bad'` → `default_90d=1` |
 | Métrica oficial del jurado (si se especifica) | AUC-ROC, Estadística KS, Coeficiente Gini ($2 \times \text{AUC} - 1$) y Precisión |
 | Métrica secundaria recomendada | KS, Gini, Brier Score, Lift@10 y ROI; F1 solo como diagnóstico operativo |
-| ¿Hay dataset de test separado sin target? | Sí (archivo de prueba provisto por el organizador, 10K filas aprox.) |
+| ¿Hay dataset de test separado sin target? | Sí: `dataInicial/dataset_credito-test.xlsx` con 200 filas |
 | ¿Hay que generar archivo submission? | Sí |
 | Formato del submission | Archivo CSV con columnas `id_cliente` y `prob_default` |
 
@@ -119,8 +120,8 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 
 | Archivo | Formato | Tamaño | Filas estimadas | Columnas | Descripción |
 |---|---|---|---|---|---|
-| Archivo de entrenamiento provisto | .csv/.xlsx | Por confirmar | 40,000 aprox. | 18 aprox. | Dataset histórico con target real `default_90d` |
-| Archivo de prueba provisto | .csv/.xlsx | Por confirmar | 10,000 aprox. | 17 aprox. | Dataset de prueba sin target para `submission.csv` |
+| `dataInicial/dataset_credito-train.xlsx` | .xlsx | ~0.09 MB | 800 | 22 | Train oficial con `target` raw (`good`/`bad`); crear `default_90d` antes del EDA |
+| `dataInicial/dataset_credito-test.xlsx` | .xlsx | ~0.03 MB | 200 | 23 | Test oficial sin target, con `id_adicional` y columna `Probabilidad` vacía |
 
 **Detectar automáticamente:**
 
@@ -143,16 +144,33 @@ for f in data_files:
 
 | Variable | Tipo | Rol | Descripción del caso | Notas |
 |---|---|---|---|---|
-| `default_90d` | numérica | target | Mora acumulada > 90 días | Binario (0/1) |
-| `edad` | numérica | feature | Edad del solicitante | Numérica. Validar valores negativos (ruido) |
-| `ingreso_mensual` | numérica | feature | Ingreso neto declarado | Numérica. Tratar nulos intencionales y outliers extremos |
-| `score_buro` | numérica | feature | Historial crediticio externo | Numérica. Nulos significan clientes **sin historial formal** |
-| `dias_mora_prev` | numérica | feature | Días máximos de mora previa | Numérica. Nulos significan clientes **sin deudas/atrasos previos** |
-| `ratio_endeudamiento` | numérica | feature | Deuda total / Ingresos | Relación continua de apalancamiento financiero |
-| `tipo_empleo` | categórica | feature | Relación laboral del solicitante | Dependiente / Independiente |
-| `zona_geografica` | categórica | feature | Región de procedencia del cliente | Lima, Norte, Sur, Centro, Oriente |
-| `canal_captacion` | categórica | feature | Canal de venta | Presencial, App, Web, Asesor |
-| `id_cliente` | numérica | id | Identificador del cliente | Excluir del entrenamiento |
+| `id_cliente` | numérica | id | Identificador del cliente | Excluir del entrenamiento; usar en submission |
+| `id_adicional` | numérica | id auxiliar | Identificador adicional presente en test | Excluir del modelo |
+| `target` | categórica | target raw | Etiqueta original `good`/`bad` en train | Mapear y luego excluir de features |
+| `default_90d` | numérica | target canónico | Target derivado para todo el flujo | 0=`good`, 1=`bad` |
+| `checking_status` | categórica | feature | Estado de cuenta corriente | Liquidez y señal fuerte de riesgo |
+| `duration` | numérica | feature | Duración del crédito | Usar también en cuota/carga estimada |
+| `credit_history` | categórica | feature | Historial crediticio | Segmenta comportamiento previo |
+| `purpose` | categórica | feature | Propósito del crédito | Diferencia consumo/productivo |
+| `credit_amount` | numérica | feature | Monto solicitado | Usar log y ratios con duración |
+| `savings_status` | categórica | feature | Nivel de ahorros | Tratar “no known savings” como categoría informativa |
+| `employment` | categórica | feature | Antigüedad/estabilidad laboral | Señal de estabilidad de ingreso |
+| `installment_commitment` | numérica | feature | Compromiso de cuota | Proxy de carga financiera |
+| `personal_status` | categórica | feature | Estado personal codificado | Usar con prudencia interpretativa |
+| `other_parties` | categórica | feature | Garantes/deudores adicionales | Señal de mitigación de riesgo |
+| `residence_since` | numérica | feature | Tiempo de residencia | Estabilidad residencial |
+| `property_magnitude` | categórica | feature | Tipo de propiedad | Proxy patrimonial |
+| `age` | numérica | feature | Edad del solicitante | Validar rangos; usar bandas |
+| `other_payment_plans` | categórica | feature | Otros planes de pago | Señal de exposición externa |
+| `housing` | categórica | feature | Situación de vivienda | Propia/alquiler/gratis |
+| `existing_credits` | numérica | feature | Créditos existentes | Proxy de endeudamiento |
+| `job` | categórica | feature | Tipo de empleo/oficio | Estabilidad e intensidad laboral |
+| `num_dependents` | numérica | feature | Dependientes | Capacidad de pago indirecta |
+| `own_telephone` | categórica | feature | Tenencia de teléfono | Proxy socioeconómico |
+| `foreign_worker` | categórica | feature | Trabajador extranjero | Usar con cuidado regulatorio/ético |
+| `Probabilidad` | numérica | placeholder test | Columna vacía del test oficial | No usar; salida final debe ser `prob_default` |
+
+**Variables NO presentes en el dataset oficial:** `score_buro`, `ingreso_mensual`, `dias_mora_prev`, `ratio_endeudamiento`, `tipo_empleo`, `zona_geografica`, `canal_captacion`. Pueden mencionarse como mejores prácticas de crédito, pero no deben aparecer como columnas requeridas del flujo ejecutable.
 
 ---
 
@@ -163,16 +181,16 @@ Responder todas estas preguntas buscando en el caso:
 ```markdown
 - Industria: Microfinanzas y Crédito de Consumo Bancario
 - País: Perú (SBS regulaciones aplicables)
-- Período de los datos: Solicitudes históricas 2022 - 2024, sujeto a confirmación contra columnas reales.
-- ¿Es snapshot único o serie temporal?: Tratar como snapshot si no existe columna de fecha/periodo; usar validación temporal solo si el dataset trae una columna cronológica confiable.
-- Tamaño del universo de clientes: 50,000 registros
-- Tasa del evento (si se menciona): 22% de tasa de default aproximada en train
+- Período de los datos: no provisto en columnas; no existe fecha/periodo confiable en los Excel oficiales.
+- ¿Es snapshot único o serie temporal?: Snapshot/tabular. Usar `stratified_split`; no simular validación temporal si no hay columna cronológica.
+- Tamaño del universo de clientes observado: 1,000 registros oficiales (800 train + 200 test).
+- Tasa del evento observada en train: 236 `bad` de 800 = 29.5% de default.
 - ¿Datos anonimizados?: Sí, IDs codificados
-- ¿Hay información de productos financieros?: Líneas de crédito y saldo deudor general
-- ¿Hay información transaccional/de canales?: Sí, canal de captación de solicitudes
-- ¿Hay información crediticia?: Historial de mora previo, consultas central y buró
-- ¿Hay información demográfica?: Edad y zona geográfica de procedencia
-- ¿Hay variables de rentabilidad?: Ingresos y ratios de endeudamiento
+- ¿Hay información de productos financieros?: Sí: monto, duración, propósito, compromiso de cuota y créditos existentes.
+- ¿Hay información transaccional/de canales?: No hay canal de captación en el dataset oficial.
+- ¿Hay información crediticia?: Sí: `credit_history`, `checking_status`, `savings_status`, `other_payment_plans`, `existing_credits`.
+- ¿Hay información demográfica?: Sí: `age`, `personal_status`, `housing`, `foreign_worker`; no hay zona geográfica.
+- ¿Hay variables de rentabilidad?: No hay ingreso ni margen individual. El ROI usa la matriz económica del caso/supuestos documentados.
 - Matriz de valor crediticio (si se menciona): Pérdida promedio por default = $3,000 USD vs. ganancia neta por buen pagador = $450 USD. Costo de rechazo erróneo = $150 USD.
 - ¿Se mencionan políticas actuales de originación/cobranza?: No se mencionan políticas activas, requiere política de aprobación desde cero.
 - Restricciones de privacidad o regulación: SBS regulación de provisiones, exclusión de IDs personales en modelos.
@@ -211,24 +229,26 @@ Después de llenar la Fase 0, construir el diccionario de contexto para el EDA:
 
 ```python
 orquestador_a_eda = {
-    'target_col': 'default_90d',         # target crediticio
+    'target_col': 'default_90d',         # target canónico
+    'target_raw_col': 'target',          # target real en train oficial
+    'target_mapping': {'good': 0, 'bad': 1},
     'tipo_problema': 'clasificacion_binaria',
     'metrica_jurado': 'roc_auc',         # principal métrica discriminatoria
-    'data_paths': ['dataInicial/[archivo_train_provisto]'],
+    'data_paths': ['dataInicial/dataset_credito-train.xlsx'],
     'id_cols': ['id_cliente'],           # excluir identificadores
     'date_cols': [],                      # fechas conocidas
     'periodo_col': None,
     'group_col': None,
     'validation_strategy': 'stratified_split', # cambiar a temporal_split solo si existe fecha/periodo confiable
-    'known_leakage_vars': [],
-    'contexto_negocio': 'Scoring de Riesgo de Crédito para FinanCrece S.A. enfocándose en reducir mora del 7.8% al 4.2%.',
-    'drop_cols': [],
+    'known_leakage_vars': ['target'],
+    'contexto_negocio': 'Scoring de riesgo de crédito para FinanCrece S.A. sobre German Credit adaptado; objetivo: segmentar en 3 bandas y proteger rentabilidad.',
+    'drop_cols': ['target', 'id_adicional', 'Probabilidad'],
     'restricciones': ['solo usar variables provistas'],
-    'test_raw_path': 'dataInicial/[archivo_test_provisto]',
+    'test_raw_path': 'dataInicial/dataset_credito-test.xlsx',
     'submission_spec': {'cols': ['id_cliente', 'prob_default'], 'format': 'csv'},
-    'priority_analysis': ['score_buro', 'ingreso_mensual', 'ratio_endeudamiento'],
+    'priority_analysis': ['checking_status', 'credit_history', 'duration', 'credit_amount', 'savings_status', 'employment', 'installment_commitment'],
     'random_state': 42,
-    'time_budget_minutes': 30,           # budget real: 3 horas totales
+    'time_budget_minutes': 20,           # budget real: 3 horas totales
 }
 ```
 
@@ -273,25 +293,25 @@ Antes de pasar al modelado, verificar:
 ```python
 orquestador_a_modelo = {
     'features_path': 'data/processed/features.parquet',
-    'target_col': '___',
-    'id_cols': ['___'],
+    'target_col': 'default_90d',
+    'id_cols': ['id_cliente'],
     'metrica_jurado': 'roc_auc',
-    'metric_secondary': 'f1',
-    'validation_strategy': '___',     # stratified_split / temporal_split / group_split
+    'metric_secondary': 'ks_gini_brier_lift_roi',
+    'validation_strategy': 'stratified_split',     # no hay fecha/periodo confiable en datos oficiales
     'periodo_col': None,
     'group_col': None,
     'feature_builder_path': 'src/feature_builder.py',
     'test_size': 0.20,
     'random_state': 42,
-    'excellence_threshold_auc': 0.85,
+    'excellence_threshold_auc': 0.80,
     'max_overfitting_gap': 0.05,
-    'time_budget_minutes': 120,
+    'time_budget_minutes': 95,
     'eda_findings': {
-        'tasa_evento': 0.0,           # ej: 0.1546
-        'n_features_originales': 0,
-        'n_features_creadas': 0,
+        'tasa_evento': 0.295,
+        'n_features_originales': 20,
+        'n_features_creadas': 42,
         'variables_con_muchos_nulos': [],
-        'top_variables_correlacion': [],
+        'top_variables_negocio': ['checking_status', 'credit_history', 'savings_status', 'employment', 'duration', 'credit_amount'],
     },
 }
 ```

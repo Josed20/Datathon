@@ -22,9 +22,21 @@
   },
   "target": {
     "nombre": "default_90d",
-    "distribucion": "NO ENCONTRADO",
-    "pct_nulos": null,
-    "tasa_default": null
+    "raw_col": "target",
+    "mapping": {
+      "good": 0,
+      "bad": 1
+    },
+    "distribucion": {
+      "0": 564,
+      "1": 236
+    },
+    "raw_distribucion": {
+      "good": 564,
+      "bad": 236
+    },
+    "pct_nulos": 0.0,
+    "tasa_default": 29.5
   },
   "id_id_cliente": {
     "es_unico": true,

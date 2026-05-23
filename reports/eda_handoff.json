@@ -1,0 +1,44 @@
+{
+  "status": "READY",
+  "target_col": "default_90d",
+  "target_raw_col": "target",
+  "target_mapping": {
+    "good": 0,
+    "bad": 1
+  },
+  "id_cols": [
+    "id_cliente"
+  ],
+  "tipo_problema": "clasificacion_binaria",
+  "metrica_jurado": "roc_auc",
+  "validation_strategy": "stratified_split",
+  "periodo_col": null,
+  "group_col": null,
+  "feature_builder_path": "src/feature_builder.py",
+  "features_path": "data/processed/features.parquet",
+  "test_features_path": "data/processed/features_test.parquet",
+  "test_raw_path": "dataInicial/dataset_credito-test.xlsx",
+  "submission_spec": {
+    "path": "submission.csv",
+    "cols": [
+      "id_cliente",
+      "prob_default"
+    ],
+    "format": "csv"
+  },
+  "drop_cols": [
+    "target",
+    "id_adicional",
+    "Probabilidad"
+  ],
+  "event_rate": 0.295,
+  "n_train_rows": 800,
+  "n_test_rows": 200,
+  "official_dataset": "German Credit adaptado por el caso oficial FinanCrece",
+  "warnings": [
+    "No existe columna temporal; no forzar validacion temporal.",
+    "No existen score_buro, ingreso_mensual, dias_mora_prev, ratio_endeudamiento, zona_geografica ni canal_captacion en los Excel oficiales.",
+    "La columna raw target debe usarse solo para crear default_90d y luego excluirse de predictors."
+  ],
+  "created_at": "2026-05-23T10:20:00-05:00"
+}

@@ -23,12 +23,14 @@ pd.set_option("display.max_colwidth", 60)
 # ============================================================
 PROJECT_ROOT = Path(".")
 TARGET_COL = "default_90d"
+TARGET_RAW = "target"
+TARGET_POSITIVE = "bad"
 ID_COLS = ["id_cliente"]
 TIPO_PROBLEMA = "clasificacion_binaria"
 METRICA_JURADO = "roc_auc"
 VALIDATION_STRATEGY = "stratified_split"
 RANDOM_STATE = 42
-LEAKAGE_COLS = []
+LEAKAGE_COLS = [TARGET_RAW]
 
 # Crear estructura de directorios
 for d in ["data/raw", "data/processed", "reports", "reports/figures", "models", "src", "notebooks"]:
@@ -88,6 +90,13 @@ test_path  = PROJECT_ROOT / "dataInicial" / "dataset_credito-test.xlsx"
 df = pd.read_excel(train_path, engine="openpyxl")
 df_test = pd.read_excel(test_path, engine="openpyxl")
 
+# Caso oficial: el Excel trae target raw good/bad; el flujo usa default_90d como target canónico.
+if TARGET_COL not in df.columns and TARGET_RAW in df.columns:
+    df[TARGET_COL] = (df[TARGET_RAW] == TARGET_POSITIVE).astype(int)
+    print(f"\n✅ Target mapeado: {TARGET_RAW}='{TARGET_POSITIVE}' → {TARGET_COL}=1")
+elif TARGET_COL not in df.columns:
+    raise ValueError(f"No existe {TARGET_COL} ni columna raw {TARGET_RAW}; no se puede ejecutar EDA.")
+
 print(f"\n✅ TRAIN: {df.shape[0]:,} filas × {df.shape[1]} columnas")
 print(f"✅ TEST : {df_test.shape[0]:,} filas × {df_test.shape[1]} columnas")
 print(f"\nColumnas TRAIN: {list(df.columns)}")
@@ -119,6 +128,7 @@ def clasificar_columnas(df, target_col, id_cols, leakage_cols=None):
         nunique = df[col].nunique(dropna=False)
         pct_nulos = df[col].isna().mean() * 100
         pct_unicos = nunique / max(len(df), 1) * 100
+        is_categorical = dtype in ("object", "category", "bool", "str", "string", "StringDtype")
 
         if col == target_col:
             rol = "target"
@@ -134,7 +144,7 @@ def clasificar_columnas(df, target_col, id_cols, leakage_cols=None):
             rol = "posible_id"
         elif nombre.startswith(("flg_", "flag_", "ind_")) or (nunique == 2 and dtype in ("float64", "int64", "int32")):
             rol = "flag"
-        elif dtype in ("object", "category", "bool"):
+        elif is_categorical:
             rol = "categorica"
         else:
             rol = "numerica"
@@ -341,7 +351,17 @@ if num_cols:
 # Distribución de variables numéricas clave
 fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 axes = axes.flatten()
-key_vars = [v for v in ["score_buro", "ingreso_mensual", "dias_mora_prev", "ratio_endeudamiento", "edad"] if v in df.columns]
+key_vars = [
+    v for v in [
+        "duration",
+        "credit_amount",
+        "installment_commitment",
+        "residence_since",
+        "age",
+        "existing_credits",
+    ]
+    if v in df.columns
+]
 for i, var in enumerate(key_vars[:6]):
     ax = axes[i]
     for val, color, label in [(0, PALETTE["neg"], "No Default"), (1, PALETTE["pos"], "Default")]:
@@ -468,12 +488,22 @@ def build_features(df_raw: pd.DataFrame, fit_mode: bool = True) -> pd.DataFrame:
     return fe
 
 
-# Aplicar feature engineering al train
-fe_train = build_features(df, fit_mode=True)
+# Aplicar feature engineering al train.
+# Para el caso oficial German Credit se usa el builder reutilizable de src/feature_builder.py.
+try:
+    from feature_builder import build_features_german
+    fe_train = build_features_german(df)
+    print("✅ Feature builder oficial German Credit aplicado")
+except Exception as exc:
+    print(f"⚠️ No se pudo usar build_features_german ({exc}); usando builder genérico.")
+    fe_train = build_features(df, fit_mode=True)
 
 # Consolidar todas las features (originales + nuevas)
 # Variables a mantener del raw (que no son ID ni target)
-raw_features_to_keep = [c for c in df.columns if c not in (ID_COLS + LEAKAGE_COLS + [TARGET_COL])]
+raw_features_to_keep = [
+    c for c in df.columns
+    if c not in (ID_COLS + LEAKAGE_COLS + [TARGET_COL, TARGET_RAW])
+]
 new_fe_cols = [c for c in fe_train.columns if c not in df.columns]
 
 df_fe = pd.concat([
