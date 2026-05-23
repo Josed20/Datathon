@@ -661,17 +661,23 @@ if best_params:
 > [!IMPORTANT]
 > **REGLA DE NEGOCIO:** El umbral por defecto (0.50) casi nunca maximiza el ROI financiero. Debemos calcular el beneficio neto real variando el threshold.
 
-Definimos los parámetros financieros bajo **supuestos bien documentados**:
+Definimos los parámetros financieros bajo **las condiciones reales del caso de FinanCrece S.A.**:
 
 ```python
-# === PARÁMETROS FINANCIEROS (Cambiar según el caso de negocio o marcar como [SUPUESTO]) ===
-CLV_ANUAL = 1500          # [SUPUESTO] Valor neto anual que aporta un cliente retenido
-COSTO_CONTACTO = 25       # [SUPUESTO] Costo directo de contactar a un cliente (call center, incentivo, campaña)
-TASA_EFECTIVIDAD = 0.15   # [SUPUESTO] % de efectividad de retención (clientes que deciden quedarse)
+# === PARÁMETROS FINANCIEROS DE FINANCRECE S.A. ===
+BENEFICIO_PAGADOR_APROBADO = 450   # (TN) Intereses netos cobrados por préstamo sano
+COSTO_RECHAZO_OPORTUNIDAD = -150  # (FP) Costo de adquisición / margen perdido por rechazo erróneo
+COSTO_DEFAULT_APROBADO = -3000     # (FN) Capital promedio de pérdida por impago/default
+BENEFICIO_RECHAZO_EVITADO = 0      # (VP) Evitamos la pérdida, impacto neto neutro
 
 def optimizar_threshold_por_roi(y_true, y_proba):
     thresholds = np.linspace(0.01, 0.99, 99)
     resultados_roi = []
+    
+    # Caso base (aprobar a todos): tn = 0, fp = 0, así que aprobamos a los pagadores reales (tn) y morosos (fn)
+    total_negativos = (y_true == 0).sum()
+    total_positivos = (y_true == 1).sum()
+    beneficio_base = (total_negativos * BENEFICIO_PAGADOR_APROBADO) + (total_positivos * COSTO_DEFAULT_APROBADO)
     
     for t in thresholds:
         y_pred = (y_proba >= t).astype(int)
@@ -687,13 +693,10 @@ def optimizar_threshold_por_roi(y_true, y_proba):
         recall = recall_score(y_true, y_pred, zero_division=0)
         f1 = f1_score(y_true, y_pred, zero_division=0)
         
-        # ROI de la campaña
-        contactados = tp + fp
-        clientes_salvados = tp * TASA_EFECTIVIDAD
-        retornos_usd = clientes_salvados * CLV_ANUAL
-        costos_usd = contactados * COSTO_CONTACTO
-        beneficio_neto_usd = retornos_usd - costos_usd
-        roi = beneficio_neto_usd / max(costos_usd, 1)
+        # ROI Financiero Neto del modelo
+        # TN aporta +450, FP cuesta -150 (lost margin), FN cuesta -3000 (capital perdido)
+        beneficio_neto_usd = (tn * BENEFICIO_PAGADOR_APROBADO) + (fp * COSTO_RECHAZO_OPORTUNIDAD) + (fn * COSTO_DEFAULT_APROBADO)
+        ahorro_neto = beneficio_neto_usd - beneficio_base
         
         resultados_roi.append({
             "threshold": round(t, 2),
@@ -701,11 +704,10 @@ def optimizar_threshold_por_roi(y_true, y_proba):
             "precision": round(precision, 4),
             "recall": round(recall, 4),
             "f1_score": round(f1, 4),
-            "contactados": contactados,
-            "salvados": round(clientes_salvados, 1),
-            "costos_usd": round(costos_usd, 2),
             "beneficio_neto_usd": round(beneficio_neto_usd, 2),
-            "roi_ratio": round(roi, 2)
+            "ahorro_neto_usd": round(ahorro_neto, 2),
+            "beneficio_base_usd": round(beneficio_base, 2),
+            "roi_ratio": round(beneficio_neto_usd / max(abs(beneficio_base), 1), 2)
         })
         
     df_roi = pd.DataFrame(resultados_roi)
@@ -718,11 +720,50 @@ df_roi = optimizar_threshold_por_roi(y_val, y_proba_campeon_val)
 
 # Encontrar umbrales óptimos
 t_optimo_f1 = df_roi.loc[df_roi["f1_score"].idxmax()]
-t_optimo_roi = df_roi.loc[df_roi["beneficio_neto_usd"].idxmax()]
+t_optimo_roi = df_roi.loc[df_roi["ahorro_neto_usd"].idxmax()]
 
 print("\n🎯 OPTIMIZACIÓN DE UMBRAL:")
 print(f"   ▶️ Umbral óptimo F1-Score: {t_optimo_f1['threshold']} (F1: {t_optimo_f1['f1_score']:.4f}, Recall: {t_optimo_f1['recall']:.4f})")
-print(f"   ▶️ Umbral óptimo ROI ($):  {t_optimo_roi['threshold']} (Beneficio: USD {t_optimo_roi['beneficio_neto_usd']:.2f}, ROI: {t_optimo_roi['roi_ratio']:.2f}x)")
+print(f"   ▶️ Umbral óptimo ROI ($):  {t_optimo_roi['threshold']} (Ahorro Neto vs. Base: USD {t_optimo_roi['ahorro_neto_usd']:.2f})")
+```
+
+```python
+# === IMPLEMENTACIÓN DE LA POLÍTICA DE 3 BANDAS DE RIESGO ===
+def aplicar_politica_3_bandas(y_true, y_proba, u1=0.15, u2=0.35):
+    """
+    Clasifica a los solicitantes en 3 bandas de riesgo:
+    - Bajo Riesgo (Score < u1) -> Aprobación Automática (100% Línea)
+    - Riesgo Medio (u1 <= Score < u2) -> Aprobación Condicionada (50% Línea o Aval)
+    - Alto Riesgo (Score >= u2) -> Rechazo Automático preventivo
+    """
+    df_pol = pd.DataFrame({"real": y_true, "score": y_proba})
+    
+    def asignar_banda(s):
+        if s < u1:
+            return "1. Bajo Riesgo (Aprobar)"
+        elif s < u2:
+            return "2. Riesgo Medio (Condicionar)"
+        else:
+            return "3. Alto Riesgo (Rechazar)"
+            
+    df_pol["banda"] = df_pol["score"].apply(asignar_banda)
+    
+    reporte = df_pol.groupby("banda").agg(
+        n_clientes=("score", "count"),
+        pct_clientes=("score", lambda x: len(x) / len(df_pol) * 100),
+        tasa_mora_real=("real", "mean"),
+        score_promedio=("score", "mean")
+    ).reset_index()
+    
+    print("\n📋 REPORTE DE POLÍTICA CREDITICIA DE 3 BANDAS:")
+    for _, row in reporte.iterrows():
+        print(f"  {row['banda']}: {row['n_clientes']:,} clientes ({row['pct_clientes']:.1f}%) | Mora Real: {row['tasa_mora_real']*100:.2f}% | Score Promedio: {row['score_promedio']:.4f}")
+        
+    reporte.to_csv(PROJECT_ROOT / "reports" / "politica_3_bandas.csv", index=False)
+    return df_pol, reporte
+
+# Aplicar política con umbrales recomendados por la optimización de ROI
+df_pol, reporte_bandas = aplicar_politica_3_bandas(y_val, y_proba_campeon_val, u1=t_optimo_roi["threshold"]*0.7, u2=t_optimo_roi["threshold"])
 ```
 
 ```python

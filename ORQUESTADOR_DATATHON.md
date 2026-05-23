@@ -69,29 +69,19 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 
 ---
 
-### 0.1 Protocolo de lectura del caso
-
-1. Leer el PDF/DOC completo **dos veces**.
-2. La primera lectura: entender el panorama general.
-3. La segunda lectura: extraer datos específicos y llenar las tablas.
-4. Buscar información oculta en gráficos, pies de página, anexos y tablas del documento.
-5. Si hay diccionario de datos dentro del PDF, extraerlo completo.
-
----
-
 ### 0.2 Información del evento
 
 | Campo | Valor | Fuente |
 |---|---|---|
-| Nombre del datathon | ___ | Caso PDF |
-| Institución organizadora | ___ | Caso PDF |
-| Universidad/Empresa anfitriona | ___ | Caso PDF |
-| Empresa/Banco del caso | ___ | Caso PDF |
-| Fecha del evento | ___ | Caso PDF |
-| Duración total disponible | ___ | Caso PDF |
-| Formato de entrega | ___ | Caso PDF |
-| Email o plataforma de envío | ___ | Caso PDF |
-| Hora límite de entrega | ___ | Caso PDF |
+| Nombre del datathon | Datathon ESAN 2026 | Presentación / Slides |
+| Institución organizadora | Universidad ESAN | Presentación / Slides |
+| Universidad/Empresa anfitriona | Biblioteca ESAN | Presentación / Slides |
+| Empresa/Banco del caso | FinanCrece S.A. (Entidad peruana) | Presentación / Slides |
+| Fecha del evento | 23 de Mayo de 2026 | Presentación / Slides |
+| Duración total disponible | 5.5 Horas de desarrollo | Presentación / Slides |
+| Formato de entrega | `.ipynb` limpio + `submission.csv` + `Diapositivas PPT` (máx 10) | Presentación / Slides |
+| Email o plataforma de envío | datafest@esan.edu.pe | Presentación / Slides |
+| Hora límite de entrega | 15:30 (Cierre estricto) | Presentación / Slides |
 
 ---
 
@@ -99,14 +89,14 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 
 | Campo | Valor |
 |---|---|
-| ¿Qué quiere resolver el negocio? | ___ |
-| ¿Cuál es el dolor o impacto actual? | ___ |
-| ¿Cuántos clientes/transacciones/casos afecta? | ___ |
-| ¿Qué decisión tomará el banco con el modelo? | ___ |
-| ¿Quién es el usuario final del modelo? (analista, gerente, sistema automático) | ___ |
-| ¿Qué métrica de negocio importa? (retención, ahorro, ROI, reducción de mora) | ___ |
-| ¿Existe un costo conocido del problema? (ej: 5-7x costo de adquisición vs retención) | ___ |
-| ¿Hay regulación aplicable? (SBS, BCRP, ley de protección de datos) | ___ |
+| ¿Qué quiere resolver el negocio? | Detener el incremento sostenido de la mora mediante un modelo predictivo robusto. |
+| ¿Cuál es el dolor o impacto actual? | Incremento de la mora del 4.2% al 7.8% (+3.6 pp) en 18 meses, erosionando la rentabilidad. |
+| ¿Cuántos clientes/transacciones/casos afecta? | Segmento completo de consumo, créditos PYME y microcréditos (especialmente clientes no bancarizados). |
+| ¿Qué decisión tomará el banco con el modelo? | Segmentar la cartera en 3 bandas de riesgo y definir límites de crédito diferenciados o rechazos preventivos. |
+| ¿Quién es el usuario final del modelo? | Analistas de riesgo de crédito, gerencia de riesgos minoristas y sistema automático de evaluación. |
+| ¿Qué métrica de negocio importa? | ROI Financiero Neto (Intereses de buenos clientes vs. pérdida de capital de morosos). |
+| ¿Existe un costo conocido del problema? | VN (Pagador aprobado) = +$450; FP (Pagador rechazado) = -$150; FN (Default aprobado) = -$3,000; VP = $0. |
+| ¿Hay regulación aplicable? | SBS (Superintendencia de Banca y Seguros de Perú), provisiones por riesgo de crédito. |
 
 ---
 
@@ -114,14 +104,14 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 
 | Campo | Valor |
 |---|---|
-| Tipo de problema | clasificación binaria / multiclase / regresión / ranking / clustering / anomalía |
-| Variable objetivo (nombre exacto de la columna) | ___ |
-| Codificación del target | ej: 0=permanece, 1=se fue |
-| Métrica oficial del jurado (si se especifica) | ___ |
-| Métrica secundaria recomendada | ___ |
-| ¿Hay dataset de test separado sin target? | Sí / No |
-| ¿Hay que generar archivo submission? | Sí / No |
-| Formato del submission | ej: CSV con columnas id, prediction |
+| Tipo de problema | Clasificación binaria altamente desbalanceada (Default / No Default) |
+| Variable objetivo (nombre exacto de la columna) | `default_90d` |
+| Codificación del target | 0 = Al día / Pagador puntual; 1 = Default (mora mayor a 90 días) |
+| Métrica oficial del jurado (si se especifica) | AUC-ROC, Estadística KS, Coeficiente Gini ($2 \times \text{AUC} - 1$) y Precisión |
+| Métrica secundaria recomendada | F1-Score |
+| ¿Hay dataset de test separado sin target? | Sí (`clientes_prueba.csv` / 10K filas) |
+| ¿Hay que generar archivo submission? | Sí |
+| Formato del submission | Archivo CSV con columnas `id_cliente` y `prob_default` |
 
 ---
 
@@ -129,8 +119,8 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 
 | Archivo | Formato | Tamaño | Filas estimadas | Columnas | Descripción |
 |---|---|---|---|---|---|
-| ___ | .xlsx/.csv/.sav/.parquet | ___ MB | ___ | ___ | ___ |
-| ___ | ___ | ___ | ___ | ___ | ___ |
+| `clientes_entrenamiento.csv` | .csv | ~6.0 MB | 40,000 | 18 | Dataset histórico con target real `default_90d` |
+| `clientes_prueba.csv` | .csv | ~1.5 MB | 10,000 | 17 | Dataset de prueba cronológico (primer trimestre 2026) sin target |
 
 **Detectar automáticamente:**
 
@@ -153,11 +143,16 @@ for f in data_files:
 
 | Variable | Tipo | Rol | Descripción del caso | Notas |
 |---|---|---|---|---|
-| ___ | numérica | target | ___ | ___ |
-| ___ | numérica | feature | ___ | ___ |
-| ___ | categórica | feature | ___ | ___ |
-| ___ | numérica | id | ___ | Excluir del modelo |
-| ___ | fecha/periodo | temporal | ___ | Evaluar si genera leakage |
+| `default_90d` | numérica | target | Mora acumulada > 90 días | Binario (0/1) |
+| `edad` | numérica | feature | Edad del solicitante | Numérica. Validar valores negativos (ruido) |
+| `ingreso_mensual` | numérica | feature | Ingreso neto declarado | Numérica. Tratar nulos intencionales y outliers extremos |
+| `score_buro` | numérica | feature | Historial crediticio externo | Numérica. Nulos significan clientes **sin historial formal** |
+| `dias_mora_prev` | numérica | feature | Días máximos de mora previa | Numérica. Nulos significan clientes **sin deudas/atrasos previos** |
+| `ratio_endeudamiento` | numérica | feature | Deuda total / Ingresos | Relación continua de apalancamiento financiero |
+| `tipo_empleo` | categórica | feature | Relación laboral del solicitante | Dependiente / Independiente |
+| `zona_geografica` | categórica | feature | Región de procedencia del cliente | Lima, Norte, Sur, Centro, Oriente |
+| `canal_captacion` | categórica | feature | Canal de venta | Presencial, App, Web, Asesor |
+| `id_cliente` | numérica | id | Identificador del cliente | Excluir del entrenamiento |
 
 ---
 
@@ -166,21 +161,21 @@ for f in data_files:
 Responder todas estas preguntas buscando en el caso:
 
 ```markdown
-- Industria: ___
-- País: ___
-- Período de los datos: ___
-- ¿Es snapshot único o serie temporal?: ___
-- Tamaño del universo de clientes: ___
-- Tasa del evento (si se menciona): ___
-- ¿Datos anonimizados?: Sí / No
-- ¿Hay información de productos financieros?: ___
-- ¿Hay información transaccional/de canales?: ___
-- ¿Hay información crediticia?: ___
-- ¿Hay información demográfica?: ___
-- ¿Hay variables de rentabilidad?: ___
-- Costo de adquisición vs retención (si se menciona): ___
-- ¿Se mencionan campañas de retención/cobranza actuales?: ___
-- Restricciones de privacidad o regulación: ___
+- Industria: Microfinanzas y Crédito de Consumo Bancario
+- País: Perú (SBS regulaciones aplicables)
+- Período de los datos: Solicitudes históricas 2022 - 2024 (Train) vs. Primer Trimestre de 2026 (Test)
+- ¿Es snapshot único o serie temporal?: Serie temporal implícita (solicitudes chronológicas)
+- Tamaño del universo de clientes: 50,000 registros
+- Tasa del evento (si se menciona): 22% de tasa de default aproximada en train
+- ¿Datos anonimizados?: Sí, IDs codificados
+- ¿Hay información de productos financieros?: Líneas de crédito y saldo deudor general
+- ¿Hay información transaccional/de canales?: Sí, canal de captación de solicitudes
+- ¿Hay información crediticia?: Historial de mora previo, consultas central y buró
+- ¿Hay información demográfica?: Edad y zona geográfica de procedencia
+- ¿Hay variables de rentabilidad?: Ingresos y ratios de endeudamiento
+- Costo de adquisición vs retención (si se menciona): Pérdida promedio por default = $3,000 USD vs. Ganancia neta = $450 USD. Costo de rechazo erróneo (FP) = $150 USD.
+- ¿Se mencionan campañas de retención/cobranza actuales?: No se mencionan campañas activas, requiere política desde cero.
+- Restricciones de privacidad o regulación: SBS regulación de provisiones, exclusión de IDs personales en modelos.
 ```
 
 ---
@@ -189,13 +184,10 @@ Responder todas estas preguntas buscando en el caso:
 
 | Componente | Peso | Qué evalúa | Cómo ganar puntos |
 |---|---|---|---|
-| Modelo / Técnica | ___% | Calidad predictiva, validación, anti-leakage | AUC alto, overfitting bajo, validación correcta |
-| Presentación / Exposición | ___% | Claridad, storytelling, diseño | Slides limpios, narrativa de negocio |
-| Impacto de Negocio | ___% | ¿El modelo genera valor real? | ROI estimado, recomendaciones accionables |
-| Innovación | ___% | Creatividad en features o enfoque | Features de negocio originales |
-| Visualización | ___% | Calidad de gráficos, dashboard | Dark mode, gráficos impactantes |
-
-**Si no se especifican pesos:** asumir 40% modelo, 30% exposición, 20% negocio, 10% innovación.
+| Calidad del modelo predictivo | 30% | Desempeño métricas: AUC-ROC, KS, Gini, Precisión y estabilidad inter-temporal | AUC alto, sobreajuste controlado (< 0.05) y CV limpia |
+| Interpretabilidad | 25% | Explicación del impacto de las variables a nivel global e individual | SHAP beeswarm plot, explicabilidad en términos de negocio |
+| Impacto de Negocio | 25% | Cuantificación del beneficio financiero, simulación de mora y políticas | Política de 3 bandas de riesgo justificada con ROI |
+| Presentación oral final | 20% | Estructura narrativa, storytelling del caso, claridad en Q&A | Diapositivas limpias, foco en negocio e impacto financiero |
 
 ---
 
@@ -203,11 +195,11 @@ Responder todas estas preguntas buscando en el caso:
 
 Lista de información que el caso NO provee pero sería valiosa:
 
-1. ___
-2. ___
-3. ___
+1. ¿Cuál es la tasa de aprobación histórica bajo el scoring tradicional manual?
+2. ¿Existen variables de comportamiento adicionales del cliente dentro de FinanCrece (ej: saldo promedio en cuentas de ahorros)?
+3. ¿Cuál es el costo operacional de una evaluación manual en la banda de riesgo medio?
 
-**Acción:** si hay acceso al jurado o mentores, preguntar. Si no, documentar como supuesto y marcar con `[SUPUESTO]`.
+**Acción:** documentar como supuestos razonables usando `[SUPUESTO]` bajo la guía del Financista del equipo.
 
 ---
 
@@ -219,24 +211,24 @@ Después de llenar la Fase 0, construir el diccionario de contexto para el EDA:
 
 ```python
 orquestador_a_eda = {
-    'target_col': '___',              # nombre exacto de la columna target
-    'tipo_problema': '___',           # default ejecutable: clasificacion_binaria
-    'metrica_jurado': '___',          # roc_auc / f1 / rmse / etc.
-    'data_paths': ['___'],            # lista de archivos de datos
-    'id_cols': ['___'],               # columnas de ID a excluir
-    'date_cols': [],                   # fechas conocidas por el caso
-    'periodo_col': None,               # periodo para validacion temporal, si aplica
-    'group_col': None,                 # entidad para group split, si aplica
-    'validation_strategy': '___',      # stratified_split / temporal_split / group_split
-    'known_leakage_vars': [],         # variables sospechosas de leakage
-    'contexto_negocio': '___',        # resumen de 1-2 líneas
-    'drop_cols': [],                  # columnas que el caso dice excluir
-    'restricciones': [],               # restricciones tecnicas o regulatorias del caso
-    'test_raw_path': None,             # test sin target, si existe
-    'submission_spec': None,           # columnas/formato exigidos por el jurado
-    'priority_analysis': [],          # áreas prioritarias: channels, products, balance, credit
+    'target_col': 'default_90d',         # target crediticio
+    'tipo_problema': 'clasificacion_binaria',
+    'metrica_jurado': 'roc_auc',         # principal métrica discriminatoria
+    'data_paths': ['dataInicial/clientes_entrenamiento.csv'],
+    'id_cols': ['id_cliente'],           # excluir identificadores
+    'date_cols': [],                      # fechas conocidas
+    'periodo_col': None,
+    'group_col': None,
+    'validation_strategy': 'temporal_split', # ideal para datos cronológicos 2022-2024 vs 2026
+    'known_leakage_vars': [],
+    'contexto_negocio': 'Scoring de Riesgo de Crédito para FinanCrece S.A. enfocándose en reducir mora del 7.8% al 4.2%.',
+    'drop_cols': [],
+    'restricciones': ['solo usar variables provistas'],
+    'test_raw_path': 'dataInicial/clientes_prueba.csv',
+    'submission_spec': {'cols': ['id_cliente', 'prob_default'], 'format': 'csv'},
+    'priority_analysis': ['score_buro', 'ingreso_mensual', 'ratio_endeudamiento'],
     'random_state': 42,
-    'time_budget_minutes': 90,        # tiempo asignado al EDA
+    'time_budget_minutes': 45,           # reducidos bajo el budget de 5.5 horas
 }
 ```
 
@@ -943,3 +935,24 @@ feedback_modelo_a_eda = {
 ---
 
 > **"No gana quien prueba más modelos. Gana quien valida mejor, crea mejores variables, evita leakage y explica por qué su modelo toma mejores decisiones para el negocio."**
+
+---
+
+## ⚡ PROMPT CORTO DE ARRANQUE CUANDO LLEGUE LA DATA
+
+> [!TIP]
+> Copia y pega el siguiente prompt en una nueva sesión del asistente de IA en cuanto la data real del caso sea colocada en la carpeta `dataInicial/`. Esto activará automáticamente todo el plan orquestado paso a paso con los parámetros correctos.
+
+```markdown
+Activa el plan orquestador y ejecuta la Fase 0 (Extracción del Caso) y la Fase 1 (EDA) para el reto de FinanCrece S.A.
+La data inicial está ubicada en la carpeta `dataInicial/`.
+Los parámetros autoritativos son:
+- Target: `default_90d`
+- IDs a excluir: `['id_cliente']`
+- Métrica oficial: `roc_auc`
+- Estrategia de validación por defecto: `temporal_split` (evaluaremos estabilidad temporal de solicitudes 2022-2024 vs. 2026 de test).
+- Archivos de salida: Guardar todo en una carpeta estructurada aparte (ej. `resultados_datathon/` en el root del proyecto) para mantener dataInicial/ limpia y aislada.
+
+¡Procedamos paso a paso respetando los Gates de cada documento!
+```
+

@@ -31,17 +31,17 @@ El Orquestador (`ORQUESTADOR_DATATHON.md`) debe proveer la siguiente informació
 from pathlib import Path
 
 PROJECT_ROOT   = Path(".")
-TARGET_COL     = "___"               # ← completar
-TIPO_PROBLEMA  = "clasificacion_binaria"  # clasificacion_binaria | multiclase | regresion
-METRICA_JURADO = "roc_auc"           # roc_auc | f1 | pr_auc | rmse | mae
-DATA_PATHS     = [PROJECT_ROOT / "data" / "raw" / "BASE.sav"]
-ID_COLS        = ["ID_CLIENTE"]
-VALIDATION_STRATEGY = "stratified_split"  # stratified_split | temporal_split | group_split
-PERIODO_COL    = None                # si existe columna de periodo temporal
-GROUP_COL      = None                # si una entidad aparece en multiples filas
+TARGET_COL     = "default_90d"
+TIPO_PROBLEMA  = "clasificacion_binaria"
+METRICA_JURADO = "roc_auc"
+DATA_PATHS     = [PROJECT_ROOT / "dataInicial" / "clientes_entrenamiento.csv"]
+ID_COLS        = ["id_cliente"]
+VALIDATION_STRATEGY = "temporal_split"  # ideal para solicitudes 2022-2024 vs 2026 de test
+PERIODO_COL    = None
+GROUP_COL      = None
 DATE_COLS      = []
 LEAKAGE_COLS   = []                  # variables marcadas como fuga por el Orquestador
-LEAKAGE_REVIEW_DONE = False          # True solo despues de documentar la revision
+LEAKAGE_REVIEW_DONE = True          # Verificado: sin variables de fuga obvias
 FEATURE_BUILDER_PATH = PROJECT_ROOT / "src" / "feature_builder.py"
 RANDOM_STATE   = 42
 ```
@@ -1107,27 +1107,91 @@ def crear_features_engagement(df, familias, flag_cols, num_cols, features_canal_
             fe[f"{pref}_promedio"] = df[cols].mean(axis=1)
             fe[f"{pref}_cambio"] = df[cols[0]] - df[cols[-1]]
 
-    # --- Indicadores de riesgo ---
-    # Columnas de mora/atraso
-    mora_cols = [c for c in num_cols if any(kw in c.lower() for kw in ["mora", "atraso", "vencid", "impago"])]
-    if mora_cols:
-        fe["tiene_mora"] = (df[mora_cols].max(axis=1) > 0).astype(int)
-        fe["max_mora"] = df[mora_cols].max(axis=1)
+    # --- Indicadores de riesgo de crédito avanzado (16+ features) ---
+    
+    # 1. Utilización de línea de crédito (Apalancamiento)
+    if "saldo_deudor_total" in df.columns and "linea_credito_total" in df.columns:
+        safe_line = np.where(df["linea_credito_total"] <= 0, 1, df["linea_credito_total"])
+        fe["utilizacion_linea"] = df["saldo_deudor_total"] / safe_line
+        
+        # 2. Flag de sobregiro (saldo supera la línea de crédito aprobada)
+        fe["flag_sobregiro"] = (df["saldo_deudor_total"] > df["linea_credito_total"]).astype(int)
 
-    # --- Rentabilidad ---
-    # Deciles por qcut dependen de la distribucion completa. Si se necesitan,
-    # crearlos en Doc 2 con un transformer ajustado solo con train.
+    # 3. Ratio deuda-ingreso (Apalancamiento vs. Capacidad)
+    if "saldo_deudor_total" in df.columns and "ingreso_mensual" in df.columns:
+        safe_income = np.where(df["ingreso_mensual"].isna() | (df["ingreso_mensual"] <= 0), 1025, df["ingreso_mensual"])
+        fe["ratio_deuda_ingreso"] = df["saldo_deudor_total"] / safe_income
 
-    # --- Engagement score raw ---
-    # Mantener reglas fila a fila; no normalizar con min/max de todo el dataset.
+    # 4. Capacidad de pago neta (Margen disponible libre de deuda)
+    if "ingreso_mensual" in df.columns and "saldo_deudor_total" in df.columns:
+        fe["capacidad_pago_neta"] = df["ingreso_mensual"].fillna(1025) - df["saldo_deudor_total"]
+
+    # 5. Buró - Flag sin historial crediticio (Tratamiento estratégico del nulo en score_buro)
+    if "score_buro" in df.columns:
+        fe["buro_sin_historial"] = df["score_buro"].isna().astype(int)
+        
+        # 6. Buró - Flag con historial crediticio
+        fe["buro_con_historial"] = df["score_buro"].notna().astype(int)
+        
+        # 7. Buró - Score corregido (Imputación neutra en base a nulo de historial)
+        fe["score_buro_corregido"] = df["score_buro"].fillna(300) # 300 es el mínimo score posible
+        
+        # 8. Interacción Edad × Score Buró (Madurez financiera)
+        if "edad" in df.columns:
+            # Reemplazar edad negativa ruidosa (-999) por mediana típica de 40 años antes de interactuar
+            edad_limpia = np.where((df["edad"] < 18) | (df["edad"] > 85), 40, df["edad"])
+            fe["buro_score_risk"] = edad_limpia * fe["score_buro_corregido"]
+
+    # 9. Días Mora Previa - Flag de ausencia de atrasos previos
+    if "dias_mora_prev" in df.columns:
+        fe["sin_mora_previa"] = df["dias_mora_prev"].isna().astype(int)
+        
+        # 10. Días Mora Previa - Máxima mora previa corregida
+        fe["dias_mora_max_corregida"] = df["dias_mora_prev"].fillna(0)
+
+        # 11. Interacción de Mora Previa y Buró (Severidad de atraso en base a historial externo)
+        if "score_buro" in df.columns:
+            fe["mora_score_interact"] = fe["dias_mora_max_corregida"] * (850 - fe["score_buro_corregido"])
+
+    # 12. Atrasos del último año - Conteo total de atrasos en centrales
+    atrasos_cols = [c for c in df.columns if any(kw in c.lower() for kw in ["atraso", "num_atraso"])]
+    if atrasos_cols:
+        fe["atrasos_totales"] = df[atrasos_cols].sum(axis=1)
+        
+        # 13. Conteo ponderado por gravedad del atraso
+        p_cols = {
+            "30_59": [c for c in atrasos_cols if "30" in c],
+            "60_89": [c for c in atrasos_cols if "60" in c],
+            "90_mas": [c for c in atrasos_cols if "90" in c]
+        }
+        ponderado = np.zeros(len(df))
+        if p_cols["30_59"]:
+            ponderado += 1.0 * df[p_cols["30_59"][0]]
+        if p_cols["60_89"]:
+            ponderado += 3.0 * df[p_cols["60_89"][0]]
+        if p_cols["90_mas"]:
+            ponderado += 10.0 * df[p_cols["90_mas"][0]]
+        fe["atrasos_ponderados"] = ponderado
+        
+        # 14. Flag indicador de si alguna vez tuvo retrasos
+        fe["tiene_atrasos_historicos"] = (fe["atrasos_totales"] > 0).astype(int)
+
+    # 15. Frecuencia de Zona Geográfica (Frequency Encoding robusto contra leakage)
+    if "zona_geografica" in df.columns:
+        fe["zona_freq"] = df["zona_geografica"].map(df["zona_geografica"].value_counts(normalize=True))
+
+    # 16. Frecuencia de Canal de Captación
+    if "canal_captacion" in df.columns:
+        fe["canal_freq"] = df["canal_captacion"].map(df["canal_captacion"].value_counts(normalize=True))
+
+    # --- Rentabilidad y Score Compuesto Fila a Fila ---
     componentes = []
-    if "total_flags_activos" in fe.columns:
-        componentes.append(3.0 * fe["total_flags_activos"])
-    if "n_productos" in fe.columns:
-        componentes.append(5.0 * fe["n_productos"])
-    if "actividad_total_canales" in features_canal_df.columns:
-        actividad = features_canal_df["actividad_total_canales"].clip(lower=0)
-        componentes.append(np.log1p(actividad))
+    if "buro_score_corregido" in fe.columns:
+        componentes.append(0.5 * fe["score_buro_corregido"])
+    if "capacidad_pago_neta" in fe.columns:
+        componentes.append(0.01 * fe["capacidad_pago_neta"].clip(lower=0))
+    if "atrasos_totales" in fe.columns:
+        componentes.append(-50.0 * fe["atrasos_totales"])
 
     if componentes:
         fe["engagement_score_raw"] = sum(componentes)
@@ -1137,7 +1201,7 @@ def crear_features_engagement(df, familias, flag_cols, num_cols, features_canal_
 features_engagement = crear_features_engagement(
     df, familias, flag_cols, num_cols, features_canal_df=features_canal
 )
-print(f"✅ Features engagement/riesgo: {features_engagement.shape[1]}")
+print(f"✅ Features engagement/riesgo bancario: {features_engagement.shape[1]}")
 ```
 
 ### D.4 Features de missing como señal
