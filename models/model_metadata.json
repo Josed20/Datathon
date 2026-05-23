@@ -1,0 +1,61 @@
+{
+  "model_name": "LGB_regularizado",
+  "calibration_status": "sin_calibrar",
+  "target_col": "default_90d",
+  "id_cols": [
+    "id_cliente"
+  ],
+  "metrica_jurado": "roc_auc",
+  "validation_strategy": "stratified_split",
+  "random_state": 42,
+  "threshold_optimal": 0.32,
+  "umbrales_3_bandas": {
+    "u_bajo": 0.15,
+    "u_alto": 0.4
+  },
+  "metricas_val": {
+    "roc_auc": 0.8326,
+    "gini": 0.6652,
+    "ks": 0.6334,
+    "brier": 0.1565,
+    "pr_auc": 0.6677,
+    "lift_at_10": 2.34,
+    "overfitting_gap": 0.0941
+  },
+  "metricas_test_interno": {
+    "roc_auc": 0.7155,
+    "gini": 0.431,
+    "gap_val_test": 0.1171
+  },
+  "roi_financiero": {
+    "threshold_optimo": 0.32,
+    "roi_vs_base_pct": 107.15,
+    "beneficio_usd": 6450.0,
+    "ahorro_neto_usd": 96600.0
+  },
+  "politica_3_bandas": {
+    "u_bajo": 0.15,
+    "u_alto": 0.4,
+    "clientes_bajo": 42,
+    "clientes_medio": 47,
+    "clientes_alto": 71,
+    "pct_bajo": 26.2,
+    "pct_medio": 29.4,
+    "pct_alto": 44.4,
+    "tasa_default_bajo": 0.0238,
+    "tasa_default_medio": 0.1702,
+    "tasa_default_alto": 0.5352,
+    "beneficio_3_bandas_usd": 7275.0,
+    "beneficio_base_usd": -90150.0,
+    "ahorro_vs_base_usd": 97425.0,
+    "decision_bajo": "APROBAR \u2014 l\u00ednea completa",
+    "decision_medio": "CONDICIONAR \u2014 50% l\u00ednea [SUPUESTO]",
+    "decision_alto": "RECHAZAR \u2014 prevenci\u00f3n preventiva"
+  },
+  "n_features": 62,
+  "n_train": 480,
+  "n_val": 160,
+  "n_test_interno": 160,
+  "tasa_default_train": 0.2958,
+  "timestamp": "2026-05-23T09:23:07.247734"
+}

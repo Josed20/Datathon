@@ -1,0 +1,33 @@
+{
+  "dimensiones": {
+    "filas": 800,
+    "columnas": 22
+  },
+  "test_dimensiones": {
+    "filas": 200,
+    "columnas": 23
+  },
+  "duplicados": {
+    "filas_exactas": 0,
+    "pct_duplicados": 0.0
+  },
+  "tipos": {
+    "str": 14,
+    "int64": 8
+  },
+  "nulos_resumen": {
+    "columnas_sin_nulos": 22,
+    "columnas_con_nulos": 0,
+    "columnas_gt50pct": 0
+  },
+  "target": {
+    "nombre": "default_90d",
+    "distribucion": "NO ENCONTRADO",
+    "pct_nulos": null,
+    "tasa_default": null
+  },
+  "id_id_cliente": {
+    "es_unico": true,
+    "duplicados": 0
+  }
+}

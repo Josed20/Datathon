@@ -1,0 +1,31 @@
+feature,importance
+score_riesgo_compuesto,151
+cuota_estimada,113
+carga_vs_cuenta,103
+age,100
+credit_amount,85
+duration,66
+residence_since,56
+own_telephone_none,30
+carga_financiera,26
+riesgo_combinado,25
+history_risk_ordinal,18
+property_magnitude_no known property,17
+proposito_productivo,16
+other_parties_guarantor,16
+employment_risk_ordinal,14
+installment_commitment,14
+other_payment_plans_bank,13
+other_parties_none,12
+personal_status_male single,10
+employment_4<=X<7,10
+property_magnitude_real estate,10
+proposito_consumo,8
+purpose_furniture/equipment,8
+property_magnitude_car,7
+employment_1<=X<4,7
+other_payment_plans_none,7
+savings_risk_ordinal,6
+checking_risk_ordinal,5
+existing_credits,4
+joven,4

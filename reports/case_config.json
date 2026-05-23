@@ -1,0 +1,87 @@
+{
+  "datathon_name": "Datathon ESAN 2026",
+  "empresa_caso": "FinanCrece S.A.",
+  "pais": "Perú",
+  "regulador": "SBS (Superintendencia de Banca y Seguros)",
+  "fecha_evento": "2026-05-23",
+  "hora_limite": "15:30",
+  "tiempo_disponible_horas": 3,
+  "email_envio": "datafest@esan.edu.pe",
+  "tipo_problema": "clasificacion_binaria",
+  "target_col": "default_90d",
+  "target_descripcion": "1 = Default (mora >90 días), 0 = Al día / Pagador puntual",
+  "id_cols": [
+    "id_cliente"
+  ],
+  "metrica_jurado": "roc_auc",
+  "metricas_secundarias": [
+    "ks",
+    "gini",
+    "brier_score",
+    "lift_at_10",
+    "pr_auc"
+  ],
+  "criterios_jurado": {
+    "calidad_modelo": 0.3,
+    "interpretabilidad": 0.25,
+    "impacto_negocio": 0.25,
+    "presentacion_oral": 0.2
+  },
+  "data_train_path": "dataInicial/dataset_credito-train.xlsx",
+  "data_test_path": "dataInicial/dataset_credito-test.xlsx",
+  "submission_cols": [
+    "id_cliente",
+    "prob_default"
+  ],
+  "submission_format": "csv",
+  "validation_strategy": "stratified_split",
+  "nota_validacion": "Sin columna de fecha/periodo confirmada en datos reales; usar stratified_split anti-leakage",
+  "test_size": 0.2,
+  "val_size": 0.25,
+  "random_state": 42,
+  "problema_negocio": "Incremento de mora del 4.2% al 7.8% (+3.6pp) en 18 meses erosiona rentabilidad",
+  "objetivo_negocio": "Política de 3 bandas de riesgo para reducir mora sin destruir originación",
+  "metrica_negocio_principal": "ROI Financiero Neto",
+  "matriz_economica": {
+    "VN_buen_aprobado": 450,
+    "FP_buen_rechazado": -150,
+    "FN_default_aprobado": -3000,
+    "VP_default_rechazado": 0,
+    "factor_exposicion_media": 0.5,
+    "nota": "Todos los valores en USD. VN=True Negative (pagador aprobado), FP=False Positive (pagador rechazado erróneamente), FN=False Negative (moroso aprobado), VP=True Positive (default evitado)"
+  },
+  "variables_clave": {
+    "id_cliente": "ID único del cliente — excluir del entrenamiento",
+    "default_90d": "TARGET: mora >90 días (0=pagador, 1=default)",
+    "edad": "Edad del solicitante — validar negativos/outliers",
+    "ingreso_mensual": "Ingreso neto declarado — nulos = informalidad/sin doc",
+    "score_buro": "Score historial crediticio externo — NULOS = SIN HISTORIAL FORMAL",
+    "dias_mora_prev": "Días máximos de mora previa — NULOS = SIN DEUDAS/ATRASOS PREVIOS",
+    "ratio_endeudamiento": "Deuda total / Ingresos — crear versión safe y capeada",
+    "tipo_empleo": "Relación laboral: Dependiente/Independiente",
+    "zona_geografica": "Lima, Norte, Sur, Centro, Oriente",
+    "canal_captacion": "Presencial, App, Web, Asesor"
+  },
+  "leakage_cols_conocidas": [],
+  "leakage_cols_sospechosas": [],
+  "regla_anti_leakage": "No aplicar imputación, encoding, escalado, WOE ni target encoding antes del split",
+  "umbrales_excelencia": {
+    "roc_auc_minimo": 0.75,
+    "ks_minimo": 0.3,
+    "gini_minimo": 0.5,
+    "overfitting_gap_maximo": 0.05
+  },
+  "feature_builder_path": "src/feature_builder.py",
+  "supuestos": [
+    "[SUPUESTO] Periodo de datos: 2022-2024, sujeto a confirmación en datos reales",
+    "[SUPUESTO] Tasa de default estimada ~22% en train según documentación previa",
+    "[SUPUESTO] Costo operacional de evaluación manual en banda media: no provisto por el caso",
+    "[SUPUESTO] Factor exposición banda media = 50% de línea completa",
+    "[SUPUESTO] Pérdida promedio por default = $3,000 USD",
+    "[SUPUESTO] Ganancia neta por buen pagador = $450 USD",
+    "[SUPUESTO] Costo de rechazo erróneo = $150 USD"
+  ],
+  "status": "READY",
+  "version": "1.0",
+  "timestamp": "2026-05-23T09:08:52-05:00"
+}

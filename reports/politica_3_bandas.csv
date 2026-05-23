@@ -1,0 +1,2 @@
+u_bajo,u_alto,clientes_bajo,clientes_medio,clientes_alto,pct_bajo,pct_medio,pct_alto,tasa_default_bajo,tasa_default_medio,tasa_default_alto,beneficio_3_bandas_usd,beneficio_base_usd,ahorro_vs_base_usd,decision_bajo,decision_medio,decision_alto
+0.15,0.4,42,47,71,26.2,29.4,44.4,0.0238,0.1702,0.5352,7275.0,-90150.0,97425.0,APROBAR — línea completa,CONDICIONAR — 50% línea [SUPUESTO],RECHAZAR — prevención preventiva
