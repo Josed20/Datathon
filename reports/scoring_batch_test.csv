@@ -1,0 +1,201 @@
+id_cliente,prob_default,banda_riesgo,decision_politica,factores_alerta
+442,0.643842,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+814,0.727551,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+607,0.129104,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+567,0.549745,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+688,0.807537,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+210,0.016894,Bajo,APROBAR linea completa,sin_alertas_fuertes
+728,0.913357,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+417,0.675792,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+963,0.243577,Bajo,APROBAR linea completa,sin_alertas_fuertes
+406,0.505655,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+294,0.272889,Bajo,APROBAR linea completa,bajo_colchon_ahorro;plazo_largo
+925,0.859955,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;estabilidad_laboral_baja
+72,0.034184,Bajo,APROBAR linea completa,sin_alertas_fuertes
+584,0.938558,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+320,0.545791,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+107,0.439536,Alto,RECHAZAR o exigir mitigantes,historial_crediticio_riesgoso;bajo_colchon_ahorro;monto_alto
+711,0.207677,Bajo,APROBAR linea completa,sin_alertas_fuertes
+228,0.668909,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;monto_alto
+266,0.563142,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+685,0.537657,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+525,0.541791,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+858,0.185519,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+807,0.355688,Medio,CONDICIONAR linea al 50% o revision manual,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+413,0.169744,Bajo,APROBAR linea completa,bajo_colchon_ahorro;estabilidad_laboral_baja
+526,0.611396,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+797,0.158799,Bajo,APROBAR linea completa,liquidez_debil;monto_alto
+837,0.219786,Bajo,APROBAR linea completa,sin_alertas_fuertes
+411,0.630848,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+561,0.406186,Alto,RECHAZAR o exigir mitigantes,liquidez_debil
+938,0.434972,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+772,0.924027,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+213,0.848539,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;estabilidad_laboral_baja
+429,0.093688,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+684,0.253614,Bajo,APROBAR linea completa,bajo_colchon_ahorro;estabilidad_laboral_baja;monto_alto
+298,0.075786,Bajo,APROBAR linea completa,sin_alertas_fuertes
+703,0.483976,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro
+446,0.12987,Bajo,APROBAR linea completa,sin_alertas_fuertes
+805,0.500457,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;estabilidad_laboral_baja;monto_alto
+527,0.267995,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+255,0.111347,Bajo,APROBAR linea completa,liquidez_debil
+499,0.376872,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+200,0.587042,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+995,0.068306,Bajo,APROBAR linea completa,sin_alertas_fuertes
+71,0.391959,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;plazo_largo;monto_alto
+677,0.114077,Bajo,APROBAR linea completa,bajo_colchon_ahorro;monto_alto
+70,0.302086,Medio,CONDICIONAR linea al 50% o revision manual,plazo_largo
+465,0.331038,Medio,CONDICIONAR linea al 50% o revision manual,bajo_colchon_ahorro
+978,0.448458,Alto,RECHAZAR o exigir mitigantes,liquidez_debil
+405,0.339057,Medio,CONDICIONAR linea al 50% o revision manual,liquidez_debil
+321,0.695206,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+906,0.440657,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+159,0.625369,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+691,0.621056,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+764,0.215186,Bajo,APROBAR linea completa,monto_alto
+800,0.32042,Medio,CONDICIONAR linea al 50% o revision manual,liquidez_debil;estabilidad_laboral_baja
+545,0.101319,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+463,0.713363,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+293,0.355688,Medio,CONDICIONAR linea al 50% o revision manual,liquidez_debil;bajo_colchon_ahorro;monto_alto
+45,0.73635,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+948,0.113619,Bajo,APROBAR linea completa,estabilidad_laboral_baja
+861,0.095022,Bajo,APROBAR linea completa,monto_alto
+539,0.954747,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+346,0.165702,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+416,0.064991,Bajo,APROBAR linea completa,bajo_colchon_ahorro;plazo_largo;monto_alto
+343,0.474375,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;estabilidad_laboral_baja
+365,0.670763,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+132,0.928471,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+893,0.587835,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+933,0.147301,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+481,0.243294,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+176,0.14844,Bajo,APROBAR linea completa,historial_crediticio_riesgoso;estabilidad_laboral_baja;plazo_largo;monto_alto
+959,0.807525,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+89,0.568151,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+79,0.217837,Bajo,APROBAR linea completa,historial_crediticio_riesgoso;plazo_largo;monto_alto
+303,0.240161,Bajo,APROBAR linea completa,sin_alertas_fuertes
+950,0.183182,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+92,0.10722,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+220,0.159335,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+422,0.213339,Bajo,APROBAR linea completa,liquidez_debil
+146,0.821702,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;plazo_largo
+905,0.172657,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+18,0.969351,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;estabilidad_laboral_baja;plazo_largo
+224,0.136817,Bajo,APROBAR linea completa,sin_alertas_fuertes
+993,0.423734,Alto,RECHAZAR o exigir mitigantes,liquidez_debil
+246,0.251751,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+15,0.818835,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+148,0.137079,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+495,0.458848,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+734,0.104602,Bajo,APROBAR linea completa,sin_alertas_fuertes
+910,0.288292,Bajo,APROBAR linea completa,liquidez_debil
+324,0.60072,Alto,RECHAZAR o exigir mitigantes,liquidez_debil
+846,0.174275,Bajo,APROBAR linea completa,liquidez_debil
+419,0.298349,Bajo,APROBAR linea completa,sin_alertas_fuertes
+518,0.513637,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo;monto_alto
+7,0.182388,Bajo,APROBAR linea completa,sin_alertas_fuertes
+722,0.849533,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;estabilidad_laboral_baja
+330,0.292225,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+317,0.482145,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+48,0.222686,Bajo,APROBAR linea completa,liquidez_debil;estabilidad_laboral_baja
+987,0.903316,Alto,RECHAZAR o exigir mitigantes,historial_crediticio_riesgoso;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+668,0.646502,Alto,RECHAZAR o exigir mitigantes,historial_crediticio_riesgoso;bajo_colchon_ahorro;plazo_largo
+719,0.141757,Bajo,APROBAR linea completa,sin_alertas_fuertes
+808,0.058006,Bajo,APROBAR linea completa,sin_alertas_fuertes
+605,0.555927,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;estabilidad_laboral_baja
+290,0.647637,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+396,0.775439,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+640,0.738538,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+524,0.152311,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+311,0.58941,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;estabilidad_laboral_baja;plazo_largo;monto_alto
+585,0.138016,Bajo,APROBAR linea completa,sin_alertas_fuertes
+973,0.922049,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;estabilidad_laboral_baja
+16,0.819814,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+928,0.849069,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+943,0.176046,Bajo,APROBAR linea completa,sin_alertas_fuertes
+171,0.924652,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro
+970,0.320232,Medio,CONDICIONAR linea al 50% o revision manual,liquidez_debil;bajo_colchon_ahorro
+271,0.091466,Bajo,APROBAR linea completa,sin_alertas_fuertes
+501,0.903493,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+13,0.415557,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+920,0.710559,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+483,0.690797,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;plazo_largo
+699,0.204661,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+337,0.45287,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+884,0.141537,Bajo,APROBAR linea completa,bajo_colchon_ahorro;estabilidad_laboral_baja
+370,0.487499,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+791,0.649738,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+558,0.509586,Alto,RECHAZAR o exigir mitigantes,historial_crediticio_riesgoso;monto_alto
+958,0.160369,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+770,0.024334,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+911,0.416517,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;plazo_largo
+142,0.824711,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+408,0.539989,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+979,0.295706,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+49,0.180491,Bajo,APROBAR linea completa,bajo_colchon_ahorro;monto_alto
+424,0.155677,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+134,0.552703,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro
+678,0.791538,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+641,0.860091,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+183,0.795035,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso
+400,0.122953,Bajo,APROBAR linea completa,sin_alertas_fuertes
+188,0.370632,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+844,0.343727,Medio,CONDICIONAR linea al 50% o revision manual,historial_crediticio_riesgoso;bajo_colchon_ahorro
+211,0.017328,Bajo,APROBAR linea completa,sin_alertas_fuertes
+692,0.743266,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+788,0.051016,Bajo,APROBAR linea completa,plazo_largo
+781,0.250885,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+704,0.792043,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+612,0.308059,Medio,CONDICIONAR linea al 50% o revision manual,bajo_colchon_ahorro
+616,0.844789,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;plazo_largo;monto_alto
+738,0.704168,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+894,0.374915,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+609,0.246021,Bajo,APROBAR linea completa,bajo_colchon_ahorro;estabilidad_laboral_baja
+508,0.51788,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;estabilidad_laboral_baja
+546,0.784792,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+237,0.819627,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;estabilidad_laboral_baja;monto_alto
+165,0.547508,Alto,RECHAZAR o exigir mitigantes,plazo_largo
+152,0.046908,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+196,0.297784,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+456,0.313854,Medio,CONDICIONAR linea al 50% o revision manual,bajo_colchon_ahorro;estabilidad_laboral_baja
+376,0.875064,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;plazo_largo
+39,0.156094,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+642,0.728181,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+395,0.051441,Bajo,APROBAR linea completa,bajo_colchon_ahorro;estabilidad_laboral_baja
+98,0.691887,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+493,0.059377,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+197,0.049215,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+204,0.538453,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+746,0.73543,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+242,0.048137,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+696,0.046127,Bajo,APROBAR linea completa,sin_alertas_fuertes
+288,0.557767,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+848,0.487595,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;estabilidad_laboral_baja
+379,0.891322,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+358,0.367903,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;plazo_largo
+656,0.698491,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+971,0.604978,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+998,0.206575,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+863,0.666266,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+277,0.17796,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+185,0.568844,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+571,0.822055,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+454,0.112444,Bajo,APROBAR linea completa,bajo_colchon_ahorro
+63,0.859928,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;historial_crediticio_riesgoso;bajo_colchon_ahorro;plazo_largo
+841,0.757706,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo;monto_alto
+829,0.542471,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;plazo_largo;monto_alto
+802,0.339071,Medio,CONDICIONAR linea al 50% o revision manual,liquidez_debil;bajo_colchon_ahorro
+279,0.19416,Bajo,APROBAR linea completa,bajo_colchon_ahorro;estabilidad_laboral_baja
+725,0.636052,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro;plazo_largo
+336,0.20537,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+143,0.748838,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;plazo_largo
+230,0.926707,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+304,0.280967,Bajo,APROBAR linea completa,liquidez_debil;bajo_colchon_ahorro
+653,0.720644,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+436,0.152594,Bajo,APROBAR linea completa,liquidez_debil
+497,0.902144,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja;plazo_largo
+426,0.364954,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+83,0.564553,Alto,RECHAZAR o exigir mitigantes,bajo_colchon_ahorro
+709,0.417362,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro
+504,0.667105,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro;estabilidad_laboral_baja
+679,0.718399,Alto,RECHAZAR o exigir mitigantes,liquidez_debil;bajo_colchon_ahorro

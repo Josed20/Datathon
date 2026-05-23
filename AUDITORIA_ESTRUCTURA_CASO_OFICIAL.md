@@ -6,6 +6,8 @@ El repositorio ya tiene una base competitiva: datos procesados, modelo entrenado
 
 La auditoría corrige esa contradicción y deja el flujo listo para trabajar en 3 horas sin que EDA, modelado y presentación se contradigan.
 
+Actualización ejecutiva: se añadió y ejecutó `src/flujo_orquestador_final.py`, que genera una herramienta portable de scoring en `models/scoring_tool.joblib`. El campeón operativo para la herramienta es `LogReg_balanced_C01`, elegido por equilibrio entre desempeño, estabilidad, interpretabilidad y disponibilidad de dependencias.
+
 ## Qué pide el caso oficial
 
 - Problema: scoring de crédito para FinanCrece S.A. con foco en mora/default.
@@ -40,34 +42,35 @@ La auditoría corrige esa contradicción y deja el flujo listo para trabajar en 
 | `src/feature_builder.py` | Ingeniería reproducible para train/test. |
 | `reports/case_config.json` | Configuración autoritativa del caso. |
 | `reports/eda_handoff.json` | Contrato listo para que modelado consuma el EDA. |
-| `models/model_metadata.json` | Métricas y política final del modelo regularizado. |
+| `models/model_metadata.json` | Métricas del artefacto previo regularizado. |
+| `models/scoring_tool.joblib` | Herramienta final portable para scoring individual y batch. |
 | `submission.csv` | Entregable final de predicción. |
 
 ## Métricas ya disponibles
 
-Modelo regularizado actual: `LGB_regularizado`.
+Modelo operativo final de la herramienta: `LogReg_balanced_C01`.
 
 | Métrica | Validación |
 |---|---:|
-| ROC-AUC | 0.8326 |
-| Gini | 0.6652 |
-| KS | 0.6334 |
-| Brier | 0.1565 |
-| PR-AUC | 0.6677 |
-| Lift@10 | 2.34 |
-| Gap train-val | 0.0941 |
+| ROC-AUC | 0.8021 |
+| Gini | 0.6042 |
+| KS | 0.5272 |
+| Brier | 0.1704 |
+| PR-AUC | 0.6056 |
+| Lift@10 | 2.13 |
+| Gap train-val | 0.0626 |
 
-Riesgo técnico: el test interno cae a AUC 0.7155, con gap val-test 0.1171. Para la presentación, vender el modelo como competitivo y útil, no como perfecto. La defensa debe enfatizar regularización, bandas, calibración revisada y control de sobreajuste.
+Riesgo técnico: el test interno cae a AUC 0.7051. Para la presentación, vender el modelo como competitivo, interpretable y útil, no como perfecto. La defensa debe enfatizar regularización, bandas, Brier, control de sobreajuste y monitoreo posterior.
 
 ## Política de 3 bandas vigente
 
 | Banda | Umbral | % clientes val | Default observado | Decisión |
 |---|---:|---:|---:|---|
-| Bajo riesgo | `< 0.15` | 26.2% | 2.38% | Aprobar línea completa |
-| Riesgo medio | `0.15 - 0.40` | 29.4% | 17.02% | Condicionar al 50% |
-| Alto riesgo | `>= 0.40` | 44.4% | 53.52% | Rechazar o enviar a evaluación manual |
+| Bajo riesgo | `< 0.30` | 44.38% | 7.04% | Aprobar línea completa |
+| Riesgo medio | `0.30 - 0.36` | 5.62% | 11.11% | Condicionar al 50% |
+| Alto riesgo | `>= 0.36` | 50.00% | 51.25% | Rechazar o enviar a evaluación manual |
 
-Ahorro estimado vs política base: USD 97,425. Este valor debe presentarse como simulación con matriz económica del caso/supuestos.
+Ahorro incremental estimado con threshold binario óptimo 0.36: USD 99,600. Este valor debe presentarse como simulación con matriz económica del caso/supuestos.
 
 ## Plan de 3 horas recomendado
 
@@ -85,7 +88,7 @@ Ahorro estimado vs política base: USD 97,425. Este valor debe presentarse como 
 
 - Falta convertir o confirmar el notebook final en formato `.ipynb` si el jurado no acepta `.py`.
 - Falta construir el PPT/PPTX final; existe la lógica para 10 slides, pero debe materializarse.
-- El entorno actual de shell no tiene todas las librerías de ML disponibles, por lo que la auditoría revisó artefactos existentes y consistencia de código, pero no reejecutó el pipeline completo.
+- El runtime portable usado no tiene LightGBM/XGBoost/CatBoost, por lo que el orquestador final prioriza modelos sklearn disponibles y defendibles.
 - No hay variables macroeconómicas, geográficas ni de ingreso en los Excel. Se pueden discutir como limitación y recomendación futura, no como insumo del modelo.
 
 ## Conclusión auditora

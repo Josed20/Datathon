@@ -1,0 +1,2 @@
+u_bajo,u_alto,beneficio_3_bandas_usd,clientes_bajo,clientes_medio,clientes_alto,pct_bajo,pct_medio,pct_alto,tasa_default_bajo,tasa_default_medio,tasa_default_alto,decision_bajo,decision_medio,decision_alto,nota
+0.3,0.36,9150.0,71.0,9.0,80.0,44.38,5.62,50.0,0.0704,0.1111,0.5125,APROBAR linea completa,CONDICIONAR linea al 50% o revision manual,RECHAZAR o exigir mitigantes,Politica optimizada en validacion; valores economicos bajo supuestos documentados.

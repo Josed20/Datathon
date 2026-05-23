@@ -1,0 +1,23 @@
+{
+  "id_cliente": 100001,
+  "checking_status": "<0",
+  "duration": 36,
+  "credit_history": "all paid",
+  "purpose": "new car",
+  "credit_amount": 6500,
+  "savings_status": "<100",
+  "employment": "<1",
+  "installment_commitment": 4,
+  "personal_status": "male single",
+  "other_parties": "none",
+  "residence_since": 2,
+  "property_magnitude": "car",
+  "age": 28,
+  "other_payment_plans": "none",
+  "housing": "rent",
+  "existing_credits": 2,
+  "job": "skilled",
+  "num_dependents": 1,
+  "own_telephone": "none",
+  "foreign_worker": "yes"
+}

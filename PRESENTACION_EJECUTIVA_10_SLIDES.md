@@ -56,8 +56,9 @@ Incluir:
 **Mensaje:** comparamos modelos y priorizamos discriminación, estabilidad y negocio.
 
 Incluir:
-- Baseline, regresión logística, Random Forest, boosting.
-- Campeón: `LGB_regularizado`.
+- Baseline, regresión logística, Random Forest, ExtraTrees y boosting sklearn.
+- Campeón operativo: `LogReg_balanced_C01`.
+- Criterio de selección: AUC competitivo con menor sobreajuste y mejor portabilidad para herramienta de scoring.
 - Split estratificado por ausencia de fecha confiable.
 - Métricas: AUC, Gini, KS, Brier, PR-AUC, Lift@10.
 
@@ -66,12 +67,12 @@ Incluir:
 **Mensaje:** el modelo logra separación competitiva para scoring.
 
 Incluir:
-- ROC-AUC validación: 0.8326.
-- Gini: 0.6652.
-- KS: 0.6334.
-- Brier: 0.1565.
-- Lift@10: 2.34.
-- Nota honesta: test interno AUC 0.7155; se controla con regularización y bandas, no con sobrepromesa.
+- ROC-AUC validación: 0.8021.
+- Gini: 0.6042.
+- KS: 0.5272.
+- Brier: 0.1704.
+- Lift@10: 2.13.
+- Nota honesta: test interno AUC 0.7051; se controla con regularización, bandas y monitoreo, no con sobrepromesa.
 
 ## Slide 8 — Política de 3 bandas
 
@@ -79,9 +80,9 @@ Incluir:
 
 | Banda | Probabilidad | Default observado | Decisión |
 |---|---:|---:|---|
-| Bajo | `< 0.15` | 2.38% | Aprobar línea completa |
-| Medio | `0.15 - 0.40` | 17.02% | Condicionar 50% |
-| Alto | `>= 0.40` | 53.52% | Rechazar/evaluar manual |
+| Bajo | `< 0.30` | 7.04% | Aprobar línea completa |
+| Medio | `0.30 - 0.36` | 11.11% | Condicionar 50% |
+| Alto | `>= 0.36` | 51.25% | Rechazar/evaluar manual |
 
 ## Slide 9 — Impacto financiero
 
@@ -89,8 +90,9 @@ Incluir:
 
 Incluir:
 - Matriz económica: buen aprobado +USD 450; buen rechazado -USD 150; default aprobado -USD 3,000.
-- Ahorro estimado vs base: USD 97,425.
-- ROI vs base: +107.15%.
+- Threshold binario óptimo: 0.36.
+- Ahorro incremental estimado vs base: USD 99,600.
+- ROI vs base: +110.48%.
 - Marcar valores como simulación bajo supuestos documentados.
 
 ## Slide 10 — Recomendación final
