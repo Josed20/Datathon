@@ -1,0 +1,9 @@
+slide_sugerida,titulo,archivo
+Slide 3-4: Datos y hallazgos EDA,Distribucion del target y default rate por checking_status,reports\figures\notebook_eda_target_checking.png
+Slide 6: Estrategia de modelado,Comparacion de modelos y seleccion auditora,reports\figures\ppt_02_comparacion_modelos.png
+Slide 5-7: Variables importantes,Interpretabilidad del modelo campeon,reports\figures\ppt_03_interpretabilidad_coeficientes.png
+Slide 7: Resultados tecnicos,Curvas ROC y Precision-Recall,reports\figures\ppt_04_curvas_desempeno.png
+Slide 9: Impacto financiero,ROI financiero por threshold,reports\figures\ppt_05_roi_threshold.png
+Slide 8: Politica de 3 bandas,Default observado por banda de riesgo,reports\figures\notebook_politica_bandas.png
+Slide 8-10: Implementacion,Distribucion de scores en test oficial,reports\figures\ppt_07_distribucion_scores_test.png
+Slide 10: Recomendacion final,Ejemplo de herramienta de scoring,reports\figures\ppt_08_ejemplo_herramienta_scoring.png
