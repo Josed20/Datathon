@@ -37,7 +37,7 @@
 
 ### Alcance operativo
 
-Este sistema esta optimizado para una datathon bancaria supervisada y su ruta ejecutable por defecto es `clasificacion_binaria` para fuga/churn. La Fase 0 puede detectar regresion, multiclase, ranking, clustering o anomalias, pero si el caso no es clasificacion binaria se debe adaptar el Doc 2 antes de entrenar: metricas, modelos, umbrales, gates y entregables no se ejecutan literalmente.
+Este sistema esta optimizado para una datathon bancaria supervisada de **scoring de credito**. Su ruta ejecutable por defecto es `clasificacion_binaria` para estimar `default_90d` y construir una politica de 3 bandas de riesgo. La Fase 0 puede detectar regresion, multiclase, ranking, clustering o anomalias, pero si el caso no es clasificacion binaria de default se debe adaptar el Doc 2 antes de entrenar: metricas, modelos, umbrales, gates y entregables no se ejecutan literalmente.
 
 ### Responsabilidades que no se mezclan
 
@@ -78,7 +78,7 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 | Universidad/Empresa anfitriona | Biblioteca ESAN | Presentación / Slides |
 | Empresa/Banco del caso | FinanCrece S.A. (Entidad peruana) | Presentación / Slides |
 | Fecha del evento | 23 de Mayo de 2026 | Presentación / Slides |
-| Duración total disponible | 5.5 Horas de desarrollo | Presentación / Slides |
+| Duración total disponible | 3 horas efectivas de desarrollo | Aclaración operativa del equipo |
 | Formato de entrega | `.ipynb` limpio + `submission.csv` + `Diapositivas PPT` (máx 10) | Presentación / Slides |
 | Email o plataforma de envío | datafest@esan.edu.pe | Presentación / Slides |
 | Hora límite de entrega | 15:30 (Cierre estricto) | Presentación / Slides |
@@ -108,8 +108,8 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 | Variable objetivo (nombre exacto de la columna) | `default_90d` |
 | Codificación del target | 0 = Al día / Pagador puntual; 1 = Default (mora mayor a 90 días) |
 | Métrica oficial del jurado (si se especifica) | AUC-ROC, Estadística KS, Coeficiente Gini ($2 \times \text{AUC} - 1$) y Precisión |
-| Métrica secundaria recomendada | F1-Score |
-| ¿Hay dataset de test separado sin target? | Sí (`clientes_prueba.csv` / 10K filas) |
+| Métrica secundaria recomendada | KS, Gini, Brier Score, Lift@10 y ROI; F1 solo como diagnóstico operativo |
+| ¿Hay dataset de test separado sin target? | Sí (archivo de prueba provisto por el organizador, 10K filas aprox.) |
 | ¿Hay que generar archivo submission? | Sí |
 | Formato del submission | Archivo CSV con columnas `id_cliente` y `prob_default` |
 
@@ -119,8 +119,8 @@ CADA DATO NO EXTRAÍDO ES UNA OPORTUNIDAD PERDIDA.
 
 | Archivo | Formato | Tamaño | Filas estimadas | Columnas | Descripción |
 |---|---|---|---|---|---|
-| `clientes_entrenamiento.csv` | .csv | ~6.0 MB | 40,000 | 18 | Dataset histórico con target real `default_90d` |
-| `clientes_prueba.csv` | .csv | ~1.5 MB | 10,000 | 17 | Dataset de prueba cronológico (primer trimestre 2026) sin target |
+| Archivo de entrenamiento provisto | .csv/.xlsx | Por confirmar | 40,000 aprox. | 18 aprox. | Dataset histórico con target real `default_90d` |
+| Archivo de prueba provisto | .csv/.xlsx | Por confirmar | 10,000 aprox. | 17 aprox. | Dataset de prueba sin target para `submission.csv` |
 
 **Detectar automáticamente:**
 
@@ -163,8 +163,8 @@ Responder todas estas preguntas buscando en el caso:
 ```markdown
 - Industria: Microfinanzas y Crédito de Consumo Bancario
 - País: Perú (SBS regulaciones aplicables)
-- Período de los datos: Solicitudes históricas 2022 - 2024 (Train) vs. Primer Trimestre de 2026 (Test)
-- ¿Es snapshot único o serie temporal?: Serie temporal implícita (solicitudes chronológicas)
+- Período de los datos: Solicitudes históricas 2022 - 2024, sujeto a confirmación contra columnas reales.
+- ¿Es snapshot único o serie temporal?: Tratar como snapshot si no existe columna de fecha/periodo; usar validación temporal solo si el dataset trae una columna cronológica confiable.
 - Tamaño del universo de clientes: 50,000 registros
 - Tasa del evento (si se menciona): 22% de tasa de default aproximada en train
 - ¿Datos anonimizados?: Sí, IDs codificados
@@ -173,8 +173,8 @@ Responder todas estas preguntas buscando en el caso:
 - ¿Hay información crediticia?: Historial de mora previo, consultas central y buró
 - ¿Hay información demográfica?: Edad y zona geográfica de procedencia
 - ¿Hay variables de rentabilidad?: Ingresos y ratios de endeudamiento
-- Costo de adquisición vs retención (si se menciona): Pérdida promedio por default = $3,000 USD vs. Ganancia neta = $450 USD. Costo de rechazo erróneo (FP) = $150 USD.
-- ¿Se mencionan campañas de retención/cobranza actuales?: No se mencionan campañas activas, requiere política desde cero.
+- Matriz de valor crediticio (si se menciona): Pérdida promedio por default = $3,000 USD vs. ganancia neta por buen pagador = $450 USD. Costo de rechazo erróneo = $150 USD.
+- ¿Se mencionan políticas actuales de originación/cobranza?: No se mencionan políticas activas, requiere política de aprobación desde cero.
 - Restricciones de privacidad o regulación: SBS regulación de provisiones, exclusión de IDs personales en modelos.
 ```
 
@@ -214,21 +214,21 @@ orquestador_a_eda = {
     'target_col': 'default_90d',         # target crediticio
     'tipo_problema': 'clasificacion_binaria',
     'metrica_jurado': 'roc_auc',         # principal métrica discriminatoria
-    'data_paths': ['dataInicial/clientes_entrenamiento.csv'],
+    'data_paths': ['dataInicial/[archivo_train_provisto]'],
     'id_cols': ['id_cliente'],           # excluir identificadores
     'date_cols': [],                      # fechas conocidas
     'periodo_col': None,
     'group_col': None,
-    'validation_strategy': 'temporal_split', # ideal para datos cronológicos 2022-2024 vs 2026
+    'validation_strategy': 'stratified_split', # cambiar a temporal_split solo si existe fecha/periodo confiable
     'known_leakage_vars': [],
     'contexto_negocio': 'Scoring de Riesgo de Crédito para FinanCrece S.A. enfocándose en reducir mora del 7.8% al 4.2%.',
     'drop_cols': [],
     'restricciones': ['solo usar variables provistas'],
-    'test_raw_path': 'dataInicial/clientes_prueba.csv',
+    'test_raw_path': 'dataInicial/[archivo_test_provisto]',
     'submission_spec': {'cols': ['id_cliente', 'prob_default'], 'format': 'csv'},
     'priority_analysis': ['score_buro', 'ingreso_mensual', 'ratio_endeudamiento'],
     'random_state': 42,
-    'time_budget_minutes': 45,           # reducidos bajo el budget de 5.5 horas
+    'time_budget_minutes': 30,           # budget real: 3 horas totales
 }
 ```
 
@@ -333,7 +333,7 @@ Estas claves deben coincidir con `reports/eda_handoff.json`. El JSON del EDA es 
 
 Verificar antes de continuar:
 
-- [ ] ¿Se entrenaron mínimo 5 modelos (Dummy, LogReg, RF, LightGBM/XGBoost, CatBoost)?
+- [ ] ¿Se entrenaron mínimo 4 modelos (Dummy, LogReg, RF y un boosting; 5+ si hay librerías instaladas)?
 - [ ] ¿Hay tabla comparativa con métricas consistentes?
 - [ ] ¿El overfitting gap del mejor modelo es < 0.05?
 - [ ] ¿Se optimizó el threshold?
@@ -344,73 +344,39 @@ Verificar antes de continuar:
 
 ## FASE 3 — VERIFICACIÓN DE EXCELENCIA
 
-### 3.1 Umbrales de excelencia por tipo de problema
-
-#### Churn Bancario
+### 3.1 Umbrales de excelencia para Default / Riesgo Crediticio
 
 | Métrica | Mediocre | Aceptable | Bueno | Excelente | Sospechoso |
 |---|---|---|---|---|---|
-| ROC-AUC | < 0.70 | 0.70 – 0.80 | 0.80 – 0.87 | 0.87 – 0.95 | > 0.95 |
-| PR-AUC | < 0.25 | 0.25 – 0.40 | 0.40 – 0.55 | 0.55 – 0.70 | > 0.80 |
-| F1-Score | < 0.35 | 0.35 – 0.50 | 0.50 – 0.60 | 0.60 – 0.75 | > 0.85 |
-| KS Statistic | < 0.30 | 0.30 – 0.45 | 0.45 – 0.55 | 0.55 – 0.65 | > 0.70 |
-| Lift Top 10% | < 2.0x | 2.0 – 3.0x | 3.0 – 4.0x | 4.0 – 5.5x | > 6.0x |
-| Overfitting gap | > 0.08 | 0.05 – 0.08 | 0.03 – 0.05 | < 0.03 | — |
+| ROC-AUC | < 0.65 | 0.65 - 0.75 | 0.75 - 0.83 | 0.83 - 0.92 | > 0.95 |
+| Gini | < 0.30 | 0.30 - 0.50 | 0.50 - 0.66 | 0.66 - 0.84 | > 0.90 |
+| KS | < 0.25 | 0.25 - 0.40 | 0.40 - 0.50 | 0.50 - 0.60 | > 0.65 |
+| Brier Score | > 0.25 | 0.18 - 0.25 | 0.12 - 0.18 | < 0.12 | 0.00 sospechoso |
+| Gap train/valid AUC | > 0.08 | 0.05 - 0.08 | 0.03 - 0.05 | < 0.03 | AUC valid > train |
+| ROI policy | Negativo | Leve positivo | Positivo y defendible | Alto y estable | Depende de fuga/leakage |
 
-#### Fraude Bancario
-
-| Métrica | Mediocre | Aceptable | Bueno | Excelente | Sospechoso |
-|---|---|---|---|---|---|
-| ROC-AUC | < 0.80 | 0.80 – 0.88 | 0.88 – 0.93 | 0.93 – 0.98 | > 0.99 |
-| PR-AUC | < 0.15 | 0.15 – 0.35 | 0.35 – 0.55 | 0.55 – 0.75 | > 0.85 |
-| Recall | < 0.50 | 0.50 – 0.70 | 0.70 – 0.85 | 0.85 – 0.95 | > 0.98 |
-
-#### Default / Riesgo Crediticio
-
-| Métrica | Mediocre | Aceptable | Bueno | Excelente | Sospechoso |
-|---|---|---|---|---|---|
-| ROC-AUC | < 0.65 | 0.65 – 0.75 | 0.75 – 0.83 | 0.83 – 0.92 | > 0.95 |
-| Gini | < 0.30 | 0.30 – 0.50 | 0.50 – 0.66 | 0.66 – 0.84 | > 0.90 |
-| KS | < 0.25 | 0.25 – 0.40 | 0.40 – 0.50 | 0.50 – 0.60 | > 0.65 |
-
-#### Regresión (monto, saldo, ingreso)
-
-| Métrica | Mediocre | Aceptable | Bueno | Excelente | Sospechoso |
-|---|---|---|---|---|---|
-| R² | < 0.30 | 0.30 – 0.55 | 0.55 – 0.75 | 0.75 – 0.90 | > 0.95 |
-| MAPE | > 40% | 20% – 40% | 10% – 20% | 5% – 10% | < 2% |
+**Lectura bancaria:** AUC/Gini/KS miden discriminacion; Brier y calibracion miden si la probabilidad sirve para tomar decisiones economicas. Para el reto, un modelo con AUC moderado pero ROI, KS y explicabilidad fuertes puede superar a un modelo opaco con AUC marginalmente mayor.
 
 ---
 
 ### 3.2 Árbol de diagnóstico y acción
 
 ```
-¿ROC-AUC > 0.85?
-├── SÍ → ¿Overfitting gap < 0.05?
-│   ├── SÍ → ✅ EXCELENTE. Continuar a Fase 4.
-│   └── NO → Regularizar: reducir depth, aumentar min_samples, early stopping.
-│           Volver a Fase 2 con restricciones.
-└── NO → ¿ROC-AUC > 0.80?
-    ├── SÍ → BUENO pero no excelente.
-    │       Intentar:
-    │       1. Optuna para hiperparámetros (30-50 trials)
-    │       2. Más features de ingeniería → volver a Doc 1
-    │       3. Ensemble (stacking LightGBM + CatBoost)
-    │       4. Probar SMOTE o class_weight ajustado
-    └── NO → ¿ROC-AUC > 0.70?
-        ├── SÍ → ACEPTABLE pero necesita mejora.
-        │       Diagnóstico:
-        │       - ¿Las top features son todas raw? → crear más features
-        │       - ¿Hay leakage inverso (variables que confunden)? → revisar
-        │       - ¿El target está bien definido? → verificar
-        │       Volver a Doc 1 con instrucciones específicas.
-        └── NO → PROBLEMA SERIO.
-                Verificar:
-                - ¿El target es correcto?
-                - ¿Hay fuga de datos en sentido contrario?
-                - ¿Las variables tienen poder predictivo?
-                - ¿El problema es realmente predecible?
-                Escalar: revisar entendimiento del caso.
+¿ROC-AUC >= 0.75 y KS >= 0.30?
+├── SÍ → ¿Gap train/valid AUC <= 0.05?
+│   ├── SÍ → Continuar a calibracion, ROI y politica de 3 bandas.
+│   └── NO → Regularizar: menor depth, mayor min_child/min_samples, early stopping.
+│           Reentrenar una sola vez y comparar con baseline.
+└── NO → ¿ROC-AUC >= 0.65?
+    ├── SÍ → Competitivo debil: mejorar features de riesgo crediticio.
+    │       Prioridad:
+    │       1. Nulos como señal: buro sin historial, mora previa ausente, ingreso ausente.
+    │       2. Ratios seguros: deuda/ingreso, monto/ingreso, apalancamiento capado.
+    │       3. Revisar outliers y monotonicidad esperada.
+    │       4. Probar class_weight o scale_pos_weight antes que SMOTE.
+    └── NO → Bloqueo serio.
+            Verificar target, mapping 0/1, IDs, leakage, columnas constantes
+            y si el train corresponde realmente al caso de FinanCrece.
 ```
 
 ---
@@ -421,12 +387,12 @@ Si las métricas no son excelentes, iterar con este protocolo:
 
 | Iteración | Acción | Tiempo máximo | Criterio de salida |
 |---|---|---|---|
-| 1 | Feature engineering adicional (Doc 1) | 30 min | +0.02 AUC o +0.05 F1 |
-| 2 | Optuna hyperparameter search (Doc 2) | 20 min | +0.01 AUC |
-| 3 | Ensemble stacking (Doc 2) | 15 min | +0.005 AUC |
-| 4 | Revisión de leakage y variables (Doc 1) | 15 min | Confirmar limpieza |
+| 1 | Feature engineering adicional crediticio (Doc 1) | 20 min | +0.015 AUC o +0.04 KS |
+| 2 | Ajuste ligero de hiperparametros (Doc 2) | 15 min | +0.01 AUC sin subir gap |
+| 3 | Calibracion sigmoid/isotonic (Doc 2) | 10 min | Mejor Brier sin perder >0.01 AUC |
+| 4 | Revisión de leakage y variables (Doc 1) | 10 min | Confirmar limpieza |
 
-**Regla de corte:** Si después de 2 iteraciones no hay mejora, aceptar el mejor modelo y enfocarse en presentación y negocio. El jurado valora más una solución bien explicada que un AUC marginalmente mayor.
+**Regla de corte:** Con solo 3 horas, si una iteracion no mejora, congelar el mejor modelo y mover energia a ROI, explicabilidad y PPT. El jurado valora mas una solucion bancaria defendible que un AUC marginalmente mayor.
 
 ---
 
@@ -434,79 +400,142 @@ Si las métricas no son excelentes, iterar con este protocolo:
 
 ### 4.1 Framework de impacto financiero
 
-#### Parámetros base (marcar como `[SUPUESTO]` si no vienen del caso)
+#### Parámetros base de decision crediticia
 
 ```python
-# === PARÁMETROS DE NEGOCIO ===
-# Marcar con [SUPUESTO] todo lo que no viene de los datos reales
+# === MATRIZ ECONOMICA DEL CASO ===
+# Convencion: target default_90d = 1 indica mora > 90 dias.
 
-CLV_ANUAL = 1500          # [SUPUESTO] Valor anual por cliente retenido (USD)
-COSTO_CONTACTO = 25       # [SUPUESTO] Costo de contactar 1 cliente (USD)
-TASA_EFECTIVIDAD = 0.15   # [SUPUESTO] % de clientes que responden a la campaña
-COSTO_ADQUISICION = 500   # [SUPUESTO] Costo de adquirir un nuevo cliente (USD)
-HORIZONTE_MESES = 12      # Horizonte de cálculo
+GANANCIA_BUEN_APROBADO = 450      # VN: pagador aprobado
+COSTO_BUEN_RECHAZADO = -150       # FP: oportunidad perdida / friccion comercial
+PERDIDA_DEFAULT_APROBADO = -3000  # FN: capital perdido por moroso aprobado
+VALOR_DEFAULT_RECHAZADO = 0       # VP: perdida evitada
+
+# Banda media: aprobacion condicionada con menor exposicion.
+FACTOR_EXPOSICION_MEDIA = 0.50    # [SUPUESTO] limite/linea reducida al 50%
 ```
 
-#### Cálculo de ROI por threshold
+#### Cálculo de ROI por threshold de rechazo
 
 ```python
 import numpy as np
 import pandas as pd
 
-def calcular_roi_por_threshold(y_true, y_proba, thresholds,
-                                clv=1500, costo_contacto=25,
-                                tasa_efectividad=0.15):
-    """Calcula ROI de campaña de retención por threshold."""
+def calcular_roi_crediticio_por_threshold(
+    y_true,
+    y_proba,
+    thresholds,
+    ganancia_buen_aprobado=450,
+    costo_buen_rechazado=-150,
+    perdida_default_aprobado=-3000,
+    valor_default_rechazado=0,
+):
+    """Evalua la politica binaria: aprobar si p(default) < threshold; rechazar si p(default) >= threshold."""
     resultados = []
 
     for t in thresholds:
-        y_pred = (y_proba >= t).astype(int)
+        rechazar = (y_proba >= t).astype(int)
+        aprobar = 1 - rechazar
 
-        tp = ((y_pred == 1) & (y_true == 1)).sum()
-        fp = ((y_pred == 1) & (y_true == 0)).sum()
-        fn = ((y_pred == 0) & (y_true == 1)).sum()
-        tn = ((y_pred == 0) & (y_true == 0)).sum()
+        buenos = (y_true == 0)
+        malos = (y_true == 1)
 
-        clientes_contactados = tp + fp
-        clientes_salvados = tp * tasa_efectividad
-        beneficio = clientes_salvados * clv
-        costo = clientes_contactados * costo_contacto
-        roi = (beneficio - costo) / max(costo, 1)
-        beneficio_neto = beneficio - costo
+        buenos_aprobados = int(((aprobar == 1) & buenos).sum())
+        buenos_rechazados = int(((rechazar == 1) & buenos).sum())
+        defaults_aprobados = int(((aprobar == 1) & malos).sum())
+        defaults_rechazados = int(((rechazar == 1) & malos).sum())
+
+        beneficio_modelo = (
+            buenos_aprobados * ganancia_buen_aprobado
+            + buenos_rechazados * costo_buen_rechazado
+            + defaults_aprobados * perdida_default_aprobado
+            + defaults_rechazados * valor_default_rechazado
+        )
+
+        beneficio_aprobar_todos = (
+            int(buenos.sum()) * ganancia_buen_aprobado
+            + int(malos.sum()) * perdida_default_aprobado
+        )
+
+        ahorro_neto = beneficio_modelo - beneficio_aprobar_todos
+        roi = ahorro_neto / max(abs(beneficio_aprobar_todos), 1)
 
         resultados.append({
-            'threshold': round(t, 2),
-            'tp': tp, 'fp': fp, 'fn': fn, 'tn': tn,
-            'contactados': clientes_contactados,
-            'salvados_estimado': round(clientes_salvados, 1),
-            'beneficio_usd': round(beneficio, 2),
-            'costo_usd': round(costo, 2),
-            'beneficio_neto_usd': round(beneficio_neto, 2),
-            'roi': round(roi, 2),
+            'threshold_rechazo': round(float(t), 3),
+            'buenos_aprobados': buenos_aprobados,
+            'buenos_rechazados': buenos_rechazados,
+            'defaults_aprobados': defaults_aprobados,
+            'defaults_rechazados': defaults_rechazados,
+            'beneficio_modelo_usd': round(float(beneficio_modelo), 2),
+            'beneficio_base_aprobar_todos_usd': round(float(beneficio_aprobar_todos), 2),
+            'ahorro_neto_usd': round(float(ahorro_neto), 2),
+            'roi_vs_base': round(float(roi), 4),
         })
 
     return pd.DataFrame(resultados)
 ```
 
+#### Politica de 3 bandas de riesgo
+
+```python
+def simular_politica_3_bandas(
+    y_true,
+    y_proba,
+    u_bajo,
+    u_alto,
+    factor_exposicion_media=0.50,
+):
+    """
+    Bajo riesgo: aprobar linea completa.
+    Riesgo medio: aprobar condicionado con menor exposicion.
+    Alto riesgo: rechazar o enviar a evaluacion excepcional.
+    """
+    buenos = (y_true == 0)
+    malos = (y_true == 1)
+
+    bajo = y_proba <= u_bajo
+    medio = (y_proba > u_bajo) & (y_proba <= u_alto)
+    alto = y_proba > u_alto
+
+    beneficio = (
+        ((bajo & buenos).sum() * GANANCIA_BUEN_APROBADO)
+        + ((bajo & malos).sum() * PERDIDA_DEFAULT_APROBADO)
+        + ((medio & buenos).sum() * GANANCIA_BUEN_APROBADO * factor_exposicion_media)
+        + ((medio & malos).sum() * PERDIDA_DEFAULT_APROBADO * factor_exposicion_media)
+        + ((alto & buenos).sum() * COSTO_BUEN_RECHAZADO)
+        + ((alto & malos).sum() * VALOR_DEFAULT_RECHAZADO)
+    )
+
+    return {
+        'u_bajo': round(float(u_bajo), 3),
+        'u_alto': round(float(u_alto), 3),
+        'clientes_bajo': int(bajo.sum()),
+        'clientes_medio': int(medio.sum()),
+        'clientes_alto': int(alto.sum()),
+        'beneficio_politica_usd': round(float(beneficio), 2),
+        'tasa_default_bajo': round(float(y_true[bajo].mean()), 4) if bajo.sum() else np.nan,
+        'tasa_default_medio': round(float(y_true[medio].mean()), 4) if medio.sum() else np.nan,
+        'tasa_default_alto': round(float(y_true[alto].mean()), 4) if alto.sum() else np.nan,
+    }
+```
+
 #### Matriz de costo-beneficio
 
 ```
-┌──────────────────────────────────────────────────┐
-│            PREDICHO POR EL MODELO                │
-│                                                  │
-│              Positivo         Negativo            │
-│  Real  ┌──────────────┬──────────────────┐       │
-│  Pos   │ TP: Cliente   │ FN: Cliente que  │       │
-│  (fuga)│ salvado       │ se fue sin ser   │       │
-│        │ +CLV×efect.   │ detectado        │       │
-│        │               │ -CLV (pérdida)   │       │
-│  ──────┼──────────────┼──────────────────┤       │
-│  Neg   │ FP: Cliente   │ TN: Cliente que  │       │
-│  (perm)│ contactado    │ se queda sin     │       │
-│        │ innecesario   │ intervención     │       │
-│        │ -costo_contac │ $0               │       │
-│        └──────────────┴──────────────────┘       │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                  DECISION DEL MODELO                       │
+│                                                            │
+│                 Aprobar             Rechazar               │
+│  Real    ┌──────────────────┬──────────────────────┐       │
+│  Bueno   │ VN: buen pagador │ FP: buen cliente     │       │
+│  (0)     │ aprobado         │ rechazado            │       │
+│          │ +450 USD         │ -150 USD             │       │
+│  ────────┼──────────────────┼──────────────────────┤       │
+│  Default │ FN: moroso       │ VP: default evitado  │       │
+│  (1)     │ aprobado         │ por rechazo          │       │
+│          │ -3000 USD        │ 0 USD                │       │
+│          └──────────────────┴──────────────────────┘       │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -547,22 +576,24 @@ def crear_perfil_riesgo(X_val, y_val, y_proba, feature_cols):
 ## Recomendaciones para el Banco
 
 ### Acciones inmediatas (0-30 días)
-1. **Activar campaña de retención** sobre el top X% de clientes con mayor score.
-   - Contactar [N] clientes con probabilidad > [threshold].
-   - Costo estimado: USD [X] | Beneficio esperado: USD [Y] | ROI: [Z]x
+1. **Implementar politica de 3 bandas de riesgo** sobre solicitudes nuevas.
+   - Bajo riesgo: aprobar linea completa si `prob_default <= [u_bajo]`.
+   - Riesgo medio: aprobacion condicionada, menor linea o revision manual si `[u_bajo] < prob_default <= [u_alto]`.
+   - Alto riesgo: rechazar preventivamente o exigir garantias si `prob_default > [u_alto]`.
 2. **Monitorear señales de alerta** identificadas por el modelo:
    - [Variable 1]: clientes con [comportamiento] tienen [X]x más riesgo.
    - [Variable 2]: [descripción del patrón].
 
 ### Acciones a mediano plazo (1-6 meses)
-3. **Personalizar incentivos por segmento de rentabilidad:**
-   - Clientes de alta rentabilidad + alto riesgo → intervención premium.
-   - Clientes de baja rentabilidad + alto riesgo → evaluar costo-beneficio.
-4. **Integrar el score con el CRM** para alertas automáticas a gestores comerciales.
+3. **Ajustar limites por rentabilidad y riesgo:**
+   - Clientes rentables + bajo riesgo: acelerar aprobacion.
+   - Clientes rentables + riesgo medio: aprobar con menor exposicion y monitoreo temprano.
+   - Clientes de alto riesgo: rechazar, pedir garantia o derivar a producto alternativo.
+4. **Integrar el score con originacion** para alertas automaticas a analistas de credito.
 
 ### Acciones estratégicas (6-12 meses)
 5. **Reentrenar el modelo mensualmente** con datos frescos.
-6. **Implementar A/B testing** para medir impacto real de la campaña.
+6. **Implementar champion/challenger** para medir mora real por cohorte.
 7. **Construir dashboard de monitoreo** con drift detection.
 ```
 
@@ -612,7 +643,7 @@ CELDA 7 (Markdown + Code): Validación
     - print distribución de train y val
 
 CELDA 8 (Markdown + Code): Modelado
-    - Código: entrenar 5-6 modelos
+    - Código: entrenar 4-6 modelos con fallback si alguna libreria no esta instalada
     - Tabla de resultados con todas las métricas
     - Conclusión: "Modelo X ganó con ROC-AUC Y y menor overfitting"
 
@@ -820,41 +851,28 @@ feedback_modelo_a_eda = {
 - El perfil del cliente en riesgo no es accionable.
 
 **Qué hacer:**
-1. Segmentar por rentabilidad: solo predecir fuga de clientes valiosos.
-2. Cambiar el threshold para priorizar precision (contactar menos pero mejor).
-3. Crear un score compuesto: probabilidad × rentabilidad.
+1. Segmentar por rentabilidad y exposicion: no basta con predecir default, hay que decidir monto/limite.
+2. Cambiar umbrales para equilibrar defaults evitados vs. buenos clientes rechazados.
+3. Crear un score compuesto: probabilidad de default x exposicion esperada x margen.
 
 ---
 
 ## TIMING Y PRIORIZACIÓN
 
-### Timeline para datathon de 6 horas
+### Timeline real para 3 horas
 
 | Fase | Minutos | Acumulado | Documento | Qué produce |
 |---|---|---|---|---|
-| 0. Caso | 20 | 0:20 | Orquestador | Comprensión total |
-| 1. EDA | 80 | 1:40 | Doc 1 | 6-8 gráficos + features |
-| 2. Modelado | 90 | 3:10 | Doc 2 | 5-6 modelos + evaluación |
-| 3. Excelencia | 30 | 3:40 | Orquestador | Iteración si necesario |
-| 4. Negocio | 30 | 4:10 | Orquestador | ROI + recomendaciones |
-| 5. Notebook | 50 | 5:00 | Orquestador | .ipynb limpio |
-| 6. PPT | 30 | 5:30 | Orquestador | Slides + prompt |
-| 7. Buffer | 30 | 6:00 | — | Revisión y envío |
+| 0. Setup + caso | 10 | 0:10 | Orquestador | Variables, target, archivos, split |
+| 1. EDA express | 25 | 0:35 | Doc 1 | Calidad, nulos, outliers, leakage |
+| 2. Features reproducibles | 20 | 0:55 | Doc 1 | `feature_builder.py` + `features.parquet` |
+| 3. Modelado base/champion | 45 | 1:40 | Doc 2 | LogReg + arbol boosting + comparativa |
+| 4. Calibracion + ROI | 25 | 2:05 | Doc 2 / Orquestador | Brier, Gini, KS, politica 3 bandas |
+| 5. Submission + explicabilidad | 20 | 2:25 | Doc 2 | `submission.csv`, SHAP/importance |
+| 6. Notebook + PPT | 30 | 2:55 | Orquestador | Notebook limpio + max 10 slides |
+| 7. Buffer final | 5 | 3:00 | Equipo | Revisar nombres, correr envio, congelar |
 
-### Timeline para datathon de 24 horas
-
-| Fase | Horas | Documento |
-|---|---|---|
-| 0. Caso + investigación del dominio | 1.5 | Orquestador |
-| 1. EDA profundo | 3.0 | Doc 1 |
-| 2. Feature engineering extensivo | 2.0 | Doc 1 |
-| 3. Modelado + CV completo | 4.0 | Doc 2 |
-| 4. Optuna + ensemble | 3.0 | Doc 2 |
-| 5. Evaluación + SHAP profundo | 2.0 | Doc 2 |
-| 6. Análisis de negocio + dashboard | 2.0 | Orquestador |
-| 7. Notebook pulido | 2.0 | Orquestador |
-| 8. PPT + ensayo de presentación | 2.0 | Orquestador |
-| 9. Buffer / descanso | 2.5 | — |
+**Nota operativa:** aunque haya internet disponible, no depender de descargas durante el reto. Usar internet solo para confirmar sintaxis, instalar algo ya conocido o buscar una referencia puntual; la ruta ganadora debe correr con librerias locales preparadas.
 
 ### Qué cortar si falta tiempo
 
@@ -868,7 +886,7 @@ feedback_modelo_a_eda = {
 | 🟡 ALTO | Análisis de negocio (ROI) | Simplificar a 1 tabla |
 | 🟢 MEDIO | Optuna tuning | Usar parámetros razonables fijos |
 | 🟢 MEDIO | Error analysis | Omitir si falta tiempo |
-| 🟢 MEDIO | Calibración de probabilidades | Omitir |
+| 🟡 ALTO | Calibración de probabilidades | Simplificar a sigmoid o Brier reportado |
 | 🔵 BAJO | Dashboard interactivo | Omitir |
 | 🔵 BAJO | Ensemble / stacking | Omitir |
 | 🔵 BAJO | PDP / ICE plots | Omitir |
@@ -894,7 +912,7 @@ feedback_modelo_a_eda = {
 - [ ] El overfitting gap entre train y validación es < 0.05.
 - [ ] No hay leakage (variables futuras excluidas).
 - [ ] El threshold está justificado.
-- [ ] Se compararon al menos 5 modelos.
+- [ ] Se compararon al menos 4 modelos, incluyendo un baseline y un boosting.
 - [ ] random_state=42 en todos los procesos aleatorios.
 
 ### Análisis de negocio
@@ -950,9 +968,9 @@ Los parámetros autoritativos son:
 - Target: `default_90d`
 - IDs a excluir: `['id_cliente']`
 - Métrica oficial: `roc_auc`
-- Estrategia de validación por defecto: `temporal_split` (evaluaremos estabilidad temporal de solicitudes 2022-2024 vs. 2026 de test).
+- Estrategia de validación por defecto: `stratified_split`; cambiar a `temporal_split` solo si existe columna real de fecha/periodo confiable.
 - Archivos de salida: Guardar todo en una carpeta estructurada aparte (ej. `resultados_datathon/` en el root del proyecto) para mantener dataInicial/ limpia y aislada.
+- Tiempo real disponible: 3 horas. Priorizar modelo funcional, anti-leakage, ROI y `submission.csv`.
 
 ¡Procedamos paso a paso respetando los Gates de cada documento!
 ```
-

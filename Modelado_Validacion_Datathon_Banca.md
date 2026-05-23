@@ -56,9 +56,11 @@ if TIPO_PROBLEMA != "clasificacion_binaria":
 | Parámetros y metadata | `models/model_metadata.json` | Métricas finales, hiperparámetros y orden de features |
 | Log de experimentos | `reports/experiment_log.csv` | Registro de métricas comparativas de todos los modelos entrenados |
 | Análisis de threshold | `reports/threshold_analysis.csv` | Métricas de negocio y estadísticas por umbral de decisión |
+| Política de 3 bandas | `reports/politica_3_bandas.csv` | Umbrales bajo/medio/alto y beneficio esperado |
 | Feature Importance | `reports/feature_importance.csv` | Ranking final de variables del modelo ganador |
 | Predicciones de val | `reports/predicciones_validacion.csv` | Scores probabilísticos y reales para análisis de errores |
 | Curvas de evaluación | `reports/figures/model_evaluation_curves.png` | Panel con curvas ROC, PR, Confusión y Lift en Dark Mode |
+| Curva de calibración | `reports/figures/calibration_curve.png` | Revisión visual de confiabilidad de `prob_default` |
 | Resumen de SHAP | `reports/figures/shap_summary.png` | Gráfico beeswarm si el campeon es compatible con SHAP |
 
 ### 0.3 Condiciones de puerta (GATE CONDITIONS)
@@ -67,10 +69,11 @@ El proceso de modelado **NO se considera finalizado** hasta cumplir **todas** es
 
 ```python
 GATE_CONDITIONS = {
-    "cinco_modelos_entrenados": False,  # Comparación justa de Dummy, LogReg, RF, LightGBM/XGBoost, CatBoost
+    "modelos_minimos_entrenados": False,  # >=4 modelos: Dummy, LogReg, RF y al menos un boosting; >=5 si hay librerias
     "overfitting_bajo":         False,  # Diferencia de métrica oficial entre Train y Val < 0.05
-    "auc_excelencia":           False,  # ROC-AUC >= 0.85 (para Churn bancario)
-    "threshold_optimizado":     False,  # Selección de threshold basada en F1 y ROI del negocio
+    "metricas_credito_ok":      False,  # ROC-AUC >= 0.75, KS >= 0.30 y Gini >= 0.50 para scoring crediticio competitivo
+    "calibracion_revisada":     False,  # Brier/calibracion evaluados antes de usar prob_default
+    "threshold_optimizado":     False,  # Threshold y 3 bandas basados en ROI crediticio
     "interpretabilidad_exportada": False,  # SHAP o feature importance exportada
     "entregables_exportados":   False,  # Modelo, preprocessor y metadata guardados en models/
 }
@@ -193,6 +196,14 @@ Utilizamos la estrategia decidida por el Orquestador:
 
 ```python
 from sklearn.model_selection import train_test_split, StratifiedKFold
+
+# Si el Orquestador pide temporal_split pero no hay una columna cronologica real,
+# se cae de forma segura a stratified_split para evitar una falsa validacion temporal.
+if VALIDATION_STRATEGY == "temporal_split":
+    periodo_col_check = eda_handoff.get("periodo_col")
+    if not periodo_col_check or periodo_col_check not in df.columns:
+        print("⚠️ temporal_split solicitado sin columna de periodo valida; usando stratified_split anti-leakage.")
+        VALIDATION_STRATEGY = "stratified_split"
 
 # 1. SPLIT ESTRATIFICADO CLÁSICO (Sin fuerte componente temporal)
 if VALIDATION_STRATEGY == "stratified_split":
@@ -342,13 +353,28 @@ print("✅ Baselines entrenados exitosamente.")
 
 ### FASE 5: Entrenar Modelos Avanzados (Tree-Based & Boosting)
 
-Entrenamos los algoritmos campeones en datos estructurados: **Random Forest, LightGBM, XGBoost y CatBoost**.
+Entrenamos algoritmos fuertes para datos tabulares: **Random Forest, LightGBM, XGBoost y CatBoost** cuando esten disponibles. Si alguna libreria no esta instalada, el flujo usa `HistGradientBoostingClassifier` como fallback para mantener una ruta ejecutable en 3 horas.
 
 ```python
-from sklearn.ensemble import RandomForestClassifier
-import lightgbm as lgb
-import xgboost as xgb
-from catboost import CatBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+
+try:
+    import lightgbm as lgb
+except ImportError:
+    lgb = None
+    print("⚠️ LightGBM no disponible; se usara fallback sklearn si hace falta.")
+
+try:
+    import xgboost as xgb
+except ImportError:
+    xgb = None
+    print("⚠️ XGBoost no disponible; continuar sin este candidato.")
+
+try:
+    from catboost import CatBoostClassifier
+except ImportError:
+    CatBoostClassifier = None
+    print("⚠️ CatBoost no disponible; continuar sin este candidato.")
 
 # Ajustar pesos de clase para desbalance
 pos_weight = (len(y_train) - sum(y_train)) / sum(y_train)
@@ -363,56 +389,73 @@ rf_model = RandomForestClassifier(
 )
 rf_model.fit(X_train_proc, y_train)
 
-# 2. LightGBM (Clave en datathons por velocidad y manejo nativo de nulos)
-lgb_model = lgb.LGBMClassifier(
-    n_estimators=500,
-    learning_rate=0.03,
-    max_depth=6,
-    num_leaves=31,
-    scale_pos_weight=pos_weight,
-    random_state=RANDOM_STATE,
-    n_jobs=-1,
-    verbosity=-1
-)
-lgb_model.fit(
-    X_train_proc, y_train,
-    eval_set=[(X_val_proc, y_val)],
-    callbacks=[lgb.early_stopping(50, verbose=False)]
-)
+modelos_avanzados = [(rf_model, "Random Forest")]
+
+# 2. LightGBM (clave en datathons por velocidad) o fallback sklearn
+if lgb is not None:
+    lgb_model = lgb.LGBMClassifier(
+        n_estimators=500,
+        learning_rate=0.03,
+        max_depth=6,
+        num_leaves=31,
+        scale_pos_weight=pos_weight,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+        verbosity=-1
+    )
+    lgb_model.fit(
+        X_train_proc, y_train,
+        eval_set=[(X_val_proc, y_val)],
+        callbacks=[lgb.early_stopping(50, verbose=False)]
+    )
+    modelos_avanzados.append((lgb_model, "LightGBM"))
+else:
+    hgb_model = HistGradientBoostingClassifier(
+        max_iter=300,
+        learning_rate=0.05,
+        max_leaf_nodes=31,
+        random_state=RANDOM_STATE,
+    )
+    hgb_model.fit(X_train_proc, y_train)
+    modelos_avanzados.append((hgb_model, "HistGradientBoosting"))
 
 # 3. XGBoost
-xgb_model = xgb.XGBClassifier(
-    n_estimators=500,
-    learning_rate=0.03,
-    max_depth=6,
-    scale_pos_weight=pos_weight,
-    random_state=RANDOM_STATE,
-    n_jobs=-1,
-    eval_metric="logloss"
-)
-xgb_model.fit(
-    X_train_proc, y_train,
-    eval_set=[(X_val_proc, y_val)],
-    verbose=False
-)
+if xgb is not None:
+    xgb_model = xgb.XGBClassifier(
+        n_estimators=500,
+        learning_rate=0.03,
+        max_depth=6,
+        scale_pos_weight=pos_weight,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+        eval_metric="logloss"
+    )
+    xgb_model.fit(
+        X_train_proc, y_train,
+        eval_set=[(X_val_proc, y_val)],
+        verbose=False
+    )
+    modelos_avanzados.append((xgb_model, "XGBoost"))
 
 # 4. CatBoost
-cat_model = CatBoostClassifier(
-    iterations=600,
-    learning_rate=0.04,
-    depth=6,
-    auto_class_weights="Balanced",
-    random_state=RANDOM_STATE,
-    verbose=False
-)
-cat_model.fit(
-    X_train_proc, y_train,
-    eval_set=(X_val_proc, y_val),
-    early_stopping_rounds=50,
-    verbose=False
-)
+if CatBoostClassifier is not None:
+    cat_model = CatBoostClassifier(
+        iterations=600,
+        learning_rate=0.04,
+        depth=6,
+        auto_class_weights="Balanced",
+        random_state=RANDOM_STATE,
+        verbose=False
+    )
+    cat_model.fit(
+        X_train_proc, y_train,
+        eval_set=(X_val_proc, y_val),
+        early_stopping_rounds=50,
+        verbose=False
+    )
+    modelos_avanzados.append((cat_model, "CatBoost"))
 
-print("✅ Modelos avanzados entrenados exitosamente.")
+print(f"✅ Modelos avanzados entrenados: {[nombre for _, nombre in modelos_avanzados]}")
 ```
 
 ---
@@ -485,11 +528,7 @@ resultados = []
 modelos = [
     (dummy_model, "Dummy Baseline"),
     (log_reg, "Logistic Regression"),
-    (rf_model, "Random Forest"),
-    (lgb_model, "LightGBM"),
-    (xgb_model, "XGBoost"),
-    (cat_model, "CatBoost")
-]
+] + modelos_avanzados
 
 for mod, nom in modelos:
     res = evaluar_modelo(mod, X_train_proc, y_train, X_val_proc, y_val, nom)
@@ -580,9 +619,9 @@ generar_panel_curvas(modelos, X_val_proc, y_val, best_model, best_name)
 
 ---
 
-### FASE 7: Ajuste Fino de Hiperparámetros con Optuna
+### FASE 7: Ajuste Fino Ligero de Hiperparámetros
 
-Si el modelo base no llega a la excelencia, ejecutamos una busqueda estructurada de hiperparametros. El bloque siguiente optimiza CatBoost como ruta frecuente de datathon; si otra familia lidera claramente, optimizar esa familia o documentar por que se mantiene el campeon actual.
+Con solo 3 horas, esta fase es opcional. Ejecutarla solo si el pipeline ya corre completo, la submission esta controlada y queda margen real. El bloque siguiente optimiza CatBoost con pocos trials; si otra familia lidera claramente, optimizar esa familia o documentar por que se mantiene el campeon actual.
 
 ```python
 try:
@@ -594,6 +633,9 @@ except ImportError:
 
 def optimizar_hyperparametros(X_tr, y_tr, X_va, y_va):
     if not optuna: return None
+    if CatBoostClassifier is None:
+        print("⚠️ CatBoost no disponible; se omite Optuna CatBoost.")
+        return None
     
     def objective(trial):
         params = {
@@ -619,7 +661,7 @@ def optimizar_hyperparametros(X_tr, y_tr, X_va, y_va):
         return roc_auc_score(y_va, preds)
 
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=30)
+    study.optimize(objective, n_trials=10, timeout=900)
     
     print(f"🎯 Optuna: Mejor {METRICA_JURADO} = {study.best_value:.4f}")
     return study.best_params
@@ -652,6 +694,78 @@ if best_params:
 
     # Actualizar el panel si tuning agrego un candidato o cambio el campeon.
     generar_panel_curvas(modelos, X_val_proc, y_val, best_model, best_name)
+```
+
+---
+
+### FASE 7.5: Calibración de Probabilidades
+
+> [!IMPORTANT]
+> Para scoring de crédito no basta ordenar bien a los clientes. Si se usará `prob_default` para aprobar, condicionar o rechazar, la probabilidad debe estar razonablemente calibrada.
+
+```python
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+
+def calibrar_probabilidades(modelo, X_cal, y_cal, metodo="sigmoid"):
+    """
+    Calibra el campeon con validacion. Idealmente se usa un set de calibracion separado;
+    en datathon de 3 horas se permite usar validacion si se reporta la limitacion.
+    """
+    proba_raw = modelo.predict_proba(X_cal)[:, 1]
+    brier_raw = brier_score_loss(y_cal, proba_raw)
+    auc_raw = roc_auc_score(y_cal, proba_raw)
+
+    try:
+        calibrador = CalibratedClassifierCV(modelo, method=metodo, cv="prefit")
+        calibrador.fit(X_cal, y_cal)
+        proba_cal = calibrador.predict_proba(X_cal)[:, 1]
+
+        brier_cal = brier_score_loss(y_cal, proba_cal)
+        auc_cal = roc_auc_score(y_cal, proba_cal)
+
+        usar_calibrado = (brier_cal <= brier_raw) and (auc_cal >= auc_raw - 0.01)
+        modelo_final = calibrador if usar_calibrado else modelo
+        proba_final = proba_cal if usar_calibrado else proba_raw
+        estado = f"calibrated_{metodo}" if usar_calibrado else "raw_model_better"
+
+        return modelo_final, proba_final, {
+            "status": estado,
+            "brier_raw": float(brier_raw),
+            "brier_calibrated": float(brier_cal),
+            "auc_raw": float(auc_raw),
+            "auc_calibrated": float(auc_cal),
+        }
+    except Exception as exc:
+        print(f"⚠️ Calibracion no aplicada: {exc}")
+        return modelo, proba_raw, {
+            "status": "calibration_failed",
+            "brier_raw": float(brier_raw),
+            "auc_raw": float(auc_raw),
+        }
+
+scoring_model, y_proba_campeon_val, CALIBRATION_METRICS = calibrar_probabilidades(
+    best_model, X_val_proc, y_val, metodo="sigmoid"
+)
+CALIBRATION_STATUS = CALIBRATION_METRICS["status"]
+
+print("\n📐 CALIBRACIÓN:")
+for k, v in CALIBRATION_METRICS.items():
+    print(f"   {k}: {v}")
+
+try:
+    prob_true, prob_pred = calibration_curve(y_val, y_proba_campeon_val, n_bins=10, strategy="quantile")
+    plt.figure(figsize=(6, 5))
+    plt.plot(prob_pred, prob_true, marker="o", color=PALETTE_BANCO["accent"], label="Modelo")
+    plt.plot([0, 1], [0, 1], linestyle="--", color=PALETTE_BANCO["grid"], label="Calibracion perfecta")
+    plt.xlabel("Probabilidad predicha")
+    plt.ylabel("Tasa real de default")
+    plt.title("Curva de Calibracion - Probabilidad de Default")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(PROJECT_ROOT / "reports" / "figures" / "calibration_curve.png", dpi=180)
+    plt.close()
+except Exception as exc:
+    print(f"⚠️ No se pudo graficar calibracion: {exc}")
 ```
 
 ---
@@ -714,8 +828,10 @@ def optimizar_threshold_por_roi(y_true, y_proba):
     df_roi.to_csv(PROJECT_ROOT / "reports" / "threshold_analysis.csv", index=False)
     return df_roi
 
-# Calcular ROI para el modelo campeon elegido por la metrica oficial
-y_proba_campeon_val = best_model.predict_proba(X_val_proc)[:, 1]
+# Calcular ROI para el modelo campeon final; si la calibracion fue aceptada, usar sus probabilidades.
+scoring_model = globals().get("scoring_model", best_model)
+if "y_proba_campeon_val" not in globals():
+    y_proba_campeon_val = scoring_model.predict_proba(X_val_proc)[:, 1]
 df_roi = optimizar_threshold_por_roi(y_val, y_proba_campeon_val)
 
 # Encontrar umbrales óptimos
@@ -728,13 +844,14 @@ print(f"   ▶️ Umbral óptimo ROI ($):  {t_optimo_roi['threshold']} (Ahorro N
 ```
 
 ```python
-# === IMPLEMENTACIÓN DE LA POLÍTICA DE 3 BANDAS DE RIESGO ===
-def aplicar_politica_3_bandas(y_true, y_proba, u1=0.15, u2=0.35):
+# === IMPLEMENTACIÓN Y OPTIMIZACIÓN DE LA POLÍTICA DE 3 BANDAS DE RIESGO ===
+FACTOR_EXPOSICION_MEDIA = 0.50  # [SUPUESTO] banda media recibe 50% de linea/exposicion
+
+def aplicar_politica_3_bandas(y_true, y_proba, u1=0.10, u2=0.30, verbose=True):
     """
-    Clasifica a los solicitantes en 3 bandas de riesgo:
-    - Bajo Riesgo (Score < u1) -> Aprobación Automática (100% Línea)
-    - Riesgo Medio (u1 <= Score < u2) -> Aprobación Condicionada (50% Línea o Aval)
-    - Alto Riesgo (Score >= u2) -> Rechazo Automático preventivo
+    Bajo Riesgo: aprobar línea completa.
+    Riesgo Medio: aprobar condicionado con menor línea, aval o revisión manual.
+    Alto Riesgo: rechazar preventivamente.
     """
     df_pol = pd.DataFrame({"real": y_true, "score": y_proba})
     
@@ -754,16 +871,64 @@ def aplicar_politica_3_bandas(y_true, y_proba, u1=0.15, u2=0.35):
         tasa_mora_real=("real", "mean"),
         score_promedio=("score", "mean")
     ).reset_index()
-    
-    print("\n📋 REPORTE DE POLÍTICA CREDITICIA DE 3 BANDAS:")
-    for _, row in reporte.iterrows():
-        print(f"  {row['banda']}: {row['n_clientes']:,} clientes ({row['pct_clientes']:.1f}%) | Mora Real: {row['tasa_mora_real']*100:.2f}% | Score Promedio: {row['score_promedio']:.4f}")
-        
-    reporte.to_csv(PROJECT_ROOT / "reports" / "politica_3_bandas.csv", index=False)
-    return df_pol, reporte
 
-# Aplicar política con umbrales recomendados por la optimización de ROI
-df_pol, reporte_bandas = aplicar_politica_3_bandas(y_val, y_proba_campeon_val, u1=t_optimo_roi["threshold"]*0.7, u2=t_optimo_roi["threshold"])
+    def beneficio_banda(row):
+        banda = row["banda"]
+        real = row["real"]
+        if banda.startswith("1."):
+            return BENEFICIO_PAGADOR_APROBADO if real == 0 else COSTO_DEFAULT_APROBADO
+        if banda.startswith("2."):
+            return (
+                BENEFICIO_PAGADOR_APROBADO * FACTOR_EXPOSICION_MEDIA
+                if real == 0 else COSTO_DEFAULT_APROBADO * FACTOR_EXPOSICION_MEDIA
+            )
+        return COSTO_RECHAZO_OPORTUNIDAD if real == 0 else BENEFICIO_RECHAZO_EVITADO
+
+    df_pol["beneficio_usd"] = df_pol.apply(beneficio_banda, axis=1)
+    beneficio_total = float(df_pol["beneficio_usd"].sum())
+    reporte["beneficio_politica_usd"] = beneficio_total
+    
+    if verbose:
+        print("\n📋 REPORTE DE POLÍTICA CREDITICIA DE 3 BANDAS:")
+        for _, row in reporte.iterrows():
+            print(f"  {row['banda']}: {row['n_clientes']:,} clientes ({row['pct_clientes']:.1f}%) | Mora Real: {row['tasa_mora_real']*100:.2f}% | Score Promedio: {row['score_promedio']:.4f}")
+        
+    if verbose:
+        print(f"  Beneficio estimado politica: USD {beneficio_total:,.2f}")
+    return df_pol, reporte, beneficio_total
+
+def optimizar_politica_3_bandas(y_true, y_proba):
+    candidatos = []
+    grid_bajo = np.linspace(0.03, 0.25, 12)
+    grid_alto = np.linspace(0.12, 0.70, 20)
+
+    for u1 in grid_bajo:
+        for u2 in grid_alto:
+            if u2 <= u1:
+                continue
+            _, reporte_tmp, beneficio = aplicar_politica_3_bandas(y_true, y_proba, u1=u1, u2=u2, verbose=False)
+            candidatos.append({
+                "u_bajo": round(float(u1), 3),
+                "u_alto": round(float(u2), 3),
+                "beneficio_politica_usd": round(float(beneficio), 2),
+                "clientes_bajo": int(reporte_tmp.loc[reporte_tmp["banda"].str.startswith("1."), "n_clientes"].sum()),
+                "clientes_medio": int(reporte_tmp.loc[reporte_tmp["banda"].str.startswith("2."), "n_clientes"].sum()),
+                "clientes_alto": int(reporte_tmp.loc[reporte_tmp["banda"].str.startswith("3."), "n_clientes"].sum()),
+            })
+
+    df_politicas = pd.DataFrame(candidatos).sort_values("beneficio_politica_usd", ascending=False)
+    df_politicas.to_csv(PROJECT_ROOT / "reports" / "politica_3_bandas_grid.csv", index=False)
+    return df_politicas.iloc[0]
+
+# Aplicar política con umbrales optimizados para ROI
+politica_optima = optimizar_politica_3_bandas(y_val, y_proba_campeon_val)
+df_pol, reporte_bandas, beneficio_bandas = aplicar_politica_3_bandas(
+    y_val,
+    y_proba_campeon_val,
+    u1=politica_optima["u_bajo"],
+    u2=politica_optima["u_alto"],
+)
+reporte_bandas.to_csv(PROJECT_ROOT / "reports" / "politica_3_bandas.csv", index=False)
 ```
 
 ```python
@@ -782,8 +947,8 @@ def graficar_roi_vs_f1(df_roi, t_f1, t_roi):
     # Beneficio Neto en eje secundario
     ax2 = ax1.twinx()
     color2 = PALETTE_BANCO["pos"]
-    ax2.set_ylabel("Beneficio Neto USD ($)", color=color2)
-    ax2.plot(df_roi["threshold"], df_roi["beneficio_neto_usd"], color=color2, linewidth=2.5, label="Beneficio Neto")
+    ax2.set_ylabel("Ahorro Neto vs. aprobar todos USD ($)", color=color2)
+    ax2.plot(df_roi["threshold"], df_roi["ahorro_neto_usd"], color=color2, linewidth=2.5, label="Ahorro Neto")
     ax2.tick_params(axis="y", labelcolor=color2)
     ax2.axvline(t_roi, color=color2, linestyle="-.", alpha=0.7, label=f"ROI Óptimo ({t_roi})")
     
@@ -824,7 +989,7 @@ def ejecutar_interpretabilidad_shap(modelo, X_t_p, X_v_p, feature_names):
     # 1. Gráfico Resumen SHAP (Beeswarm)
     plt.figure(figsize=(10, 8))
     shap.summary_plot(shap_values, X_val_df, show=False)
-    plt.title("Impacto SHAP de Variables en la Fuga de Clientes", fontsize=14, color="white")
+    plt.title("Impacto SHAP de Variables en Default 90d", fontsize=14, color="white")
     plt.tight_layout()
     plt.savefig(PROJECT_ROOT / "reports" / "figures" / "shap_summary.png", dpi=200, facecolor="#0A1628")
     plt.close()
@@ -847,7 +1012,7 @@ ejecutar_interpretabilidad_shap(best_model, X_train_proc, X_val_proc, feature_na
 
 ### FASE 10: Análisis Detallado de Errores
 
-Guardamos las predicciones del modelo campeón en el set de validación para entender a fondo las causas de los **Falsos Negativos** (clientes que se fugaron pero el modelo ignoró) y **Falsos Positivos**.
+Guardamos las predicciones del modelo campeón en el set de validación para entender a fondo las causas de los **Falsos Negativos** (clientes que entraron en default pero fueron aprobados) y **Falsos Positivos** (buenos clientes que serían rechazados).
 
 ```python
 def ejecutar_analisis_errores(modelo, X_val_raw, X_val_p, y_true, t_decision):
@@ -881,7 +1046,7 @@ def ejecutar_analisis_errores(modelo, X_val_raw, X_val_p, y_true, t_decision):
     return df_err
 
 # Ejecutar con el umbral optimo de ROI
-df_errores = ejecutar_analisis_errores(best_model, X_val, X_val_proc, y_val, t_optimo_roi["threshold"])
+df_errores = ejecutar_analisis_errores(scoring_model, X_val, X_val_proc, y_val, t_optimo_roi["threshold"])
 ```
 
 ---
@@ -894,10 +1059,18 @@ Se serializa el campeon real y luego se verifica el gate completo. Asi `entregab
 import joblib
 
 # Actualizar gates tecnicos del campeon real
-GATE_CONDITIONS["cinco_modelos_entrenados"] = len(resultados) >= 5
+GATE_CONDITIONS["modelos_minimos_entrenados"] = len(resultados) >= 4
 GATE_CONDITIONS["overfitting_bajo"]         = best_result["Overfitting Gap"] < 0.05
-GATE_CONDITIONS["auc_excelencia"]           = best_result["ROC-AUC Val"] >= 0.85
-GATE_CONDITIONS["threshold_optimizado"]     = "beneficio_neto_usd" in df_roi.columns
+GATE_CONDITIONS["metricas_credito_ok"]      = (
+    best_result["ROC-AUC Val"] >= 0.75
+    and best_result["KS Val"] >= 0.30
+    and best_result["Gini Val"] >= 0.50
+)
+GATE_CONDITIONS["calibracion_revisada"]     = "CALIBRATION_STATUS" in globals()
+GATE_CONDITIONS["threshold_optimizado"]     = (
+    "ahorro_neto_usd" in df_roi.columns
+    and (PROJECT_ROOT / "reports" / "politica_3_bandas.csv").exists()
+)
 GATE_CONDITIONS["interpretabilidad_exportada"] = (
     (PROJECT_ROOT / "reports" / "figures" / "shap_summary.png").exists()
     or (PROJECT_ROOT / "reports" / "feature_importance.csv").exists()
@@ -906,13 +1079,21 @@ GATE_CONDITIONS["interpretabilidad_exportada"] = (
 # Guardar preprocesador y campeon
 (PROJECT_ROOT / "models").mkdir(parents=True, exist_ok=True)
 joblib.dump(preprocessor, PROJECT_ROOT / "models" / "preprocessor.joblib")
-joblib.dump(best_model, PROJECT_ROOT / "models" / "best_model.joblib")
+final_model = globals().get("scoring_model", best_model)
+joblib.dump(final_model, PROJECT_ROOT / "models" / "best_model.joblib")
 
 # Guardar metadatos finales en JSON
 metadata = {
     "target_col": TARGET_COL,
     "model_name": best_name,
+    "calibration_status": globals().get("CALIBRATION_STATUS", "not_reviewed"),
+    "calibration_metrics": globals().get("CALIBRATION_METRICS", {}),
     "optimal_threshold": float(t_optimo_roi["threshold"]),
+    "policy_3_bands": {
+        "u_bajo": float(politica_optima["u_bajo"]),
+        "u_alto": float(politica_optima["u_alto"]),
+        "factor_exposicion_media": FACTOR_EXPOSICION_MEDIA,
+    },
     "validation_metrics": {
         "roc_auc": float(best_result["ROC-AUC Val"]),
         "pr_auc": float(best_result["PR-AUC Val"]),
@@ -1088,9 +1269,7 @@ from sklearn.preprocessing import OneHotEncoder, RobustScaler
 from sklearn.impute import SimpleImputer
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-import lightgbm as lgb
-from catboost import CatBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.metrics import (
     roc_auc_score, precision_recall_curve, auc, f1_score,
     recall_score, precision_score, log_loss, brier_score_loss, confusion_matrix
@@ -1098,10 +1277,20 @@ from sklearn.metrics import (
 
 warnings.filterwarnings("ignore")
 
+try:
+    import lightgbm as lgb
+except ImportError:
+    lgb = None
+
+try:
+    from catboost import CatBoostClassifier
+except ImportError:
+    CatBoostClassifier = None
+
 # --- 1. CONFIGURACIÓN ---
 PROJECT_ROOT = Path(".")
-TARGET_COL = "CHURN"
-ID_COLS = ["ID_CLIENTE"]
+TARGET_COL = "default_90d"
+ID_COLS = ["id_cliente"]
 RANDOM_STATE = 42
 
 # --- 2. CONFIGURAR ESTILO CORPORATIVO (DARK MODE) ---
@@ -1156,10 +1345,24 @@ pos_weight = (len(y_train) - sum(y_train)) / sum(y_train)
 dummy = DummyClassifier(strategy="stratified", random_state=RANDOM_STATE).fit(X_train_proc, y_train)
 logreg = LogisticRegression(class_weight="balanced", random_state=RANDOM_STATE, max_iter=1000).fit(X_train_proc, y_train)
 
-# Avanzados
+# Avanzados con fallback local
 rf = RandomForestClassifier(n_estimators=300, max_depth=8, class_weight="balanced", random_state=RANDOM_STATE, n_jobs=-1).fit(X_train_proc, y_train)
-lgbm = lgb.LGBMClassifier(n_estimators=400, learning_rate=0.03, scale_pos_weight=pos_weight, random_state=RANDOM_STATE, verbosity=-1).fit(X_train_proc, y_train)
-cat = CatBoostClassifier(iterations=500, learning_rate=0.04, auto_class_weights="Balanced", random_state=RANDOM_STATE, verbose=False).fit(X_train_proc, y_train)
+modelos = [
+    (dummy, "Dummy"),
+    (logreg, "Logistic Regression"),
+    (rf, "Random Forest"),
+]
+
+if lgb is not None:
+    lgbm = lgb.LGBMClassifier(n_estimators=400, learning_rate=0.03, scale_pos_weight=pos_weight, random_state=RANDOM_STATE, verbosity=-1).fit(X_train_proc, y_train)
+    modelos.append((lgbm, "LightGBM"))
+else:
+    hgb = HistGradientBoostingClassifier(max_iter=250, learning_rate=0.05, random_state=RANDOM_STATE).fit(X_train_proc, y_train)
+    modelos.append((hgb, "HistGradientBoosting"))
+
+if CatBoostClassifier is not None:
+    cat = CatBoostClassifier(iterations=500, learning_rate=0.04, auto_class_weights="Balanced", random_state=RANDOM_STATE, verbose=False).fit(X_train_proc, y_train)
+    modelos.append((cat, "CatBoost"))
 
 # --- 7. EVALUACIÓN Y SELECCIÓN ---
 def evaluar(mod, X_t, y_t, X_v, y_v, name):
@@ -1175,16 +1378,15 @@ def evaluar(mod, X_t, y_t, X_v, y_v, name):
     }
 
 resultados_df = pd.DataFrame([
-    evaluar(dummy, X_train_proc, y_train, X_val_proc, y_val, "Dummy"),
-    evaluar(logreg, X_train_proc, y_train, X_val_proc, y_val, "Logistic Regression"),
-    evaluar(rf, X_train_proc, y_train, X_val_proc, y_val, "Random Forest"),
-    evaluar(lgbm, X_train_proc, y_train, X_val_proc, y_val, "LightGBM"),
-    evaluar(cat, X_train_proc, y_train, X_val_proc, y_val, "CatBoost")
+    evaluar(mod, X_train_proc, y_train, X_val_proc, y_val, name)
+    for mod, name in modelos
 ])
 print(resultados_df.to_markdown(index=False))
+best_name = resultados_df.sort_values("AUC Val", ascending=False).iloc[0]["Modelo"]
+best_model = next(mod for mod, name in modelos if name == best_name)
 
 # --- 8. SERIALIZAR CAMPEÓN ---
 joblib.dump(preprocessor, PROJECT_ROOT / "models" / "preprocessor.joblib")
-joblib.dump(cat, PROJECT_ROOT / "models" / "best_model.joblib")
+joblib.dump(best_model, PROJECT_ROOT / "models" / "best_model.joblib")
 print("🎉 ¡Pipeline de excelencia completado exitosamente!")
 ```

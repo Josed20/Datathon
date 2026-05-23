@@ -12,15 +12,15 @@ El Orquestador (`ORQUESTADOR_DATATHON.md`) debe proveer la siguiente informació
 
 | Input | Ejemplo | Obligatorio |
 |---|---|:---:|
-| `TARGET_COL` | `"CHURN"` | ✅ |
+| `TARGET_COL` | `"default_90d"` | ✅ |
 | `TIPO_PROBLEMA` | `"clasificacion_binaria"` | ✅ |
 | `METRICA_JURADO` | `"roc_auc"` | ✅ |
-| `DATA_PATHS` | `["data/raw/BASE.sav"]` | ✅ |
-| `ID_COLS` | `["ID_CLIENTE"]` | ✅ |
-| `CONTEXTO_NEGOCIO` | `"Predecir fuga de clientes..."` | ✅ |
+| `DATA_PATHS` | `["dataInicial/[archivo_train_provisto]"]` | ✅ |
+| `ID_COLS` | `["id_cliente"]` | ✅ |
+| `CONTEXTO_NEGOCIO` | `"Scoring de credito para default/mora >90 dias"` | ✅ |
 | `VALIDATION_STRATEGY` | `"stratified_split"` | ✅ |
-| `PERIODO_COL` | `"PERIODO"` | ❌ |
-| `GROUP_COL` | `"ID_CLIENTE"` | ❌ |
+| `PERIODO_COL` | `"periodo"` | ❌ |
+| `GROUP_COL` | `"id_cliente"` | ❌ |
 | `DATE_COLS` | `["FECHA_ALTA"]` | ❌ |
 | `RESTRICCIONES` | `["no usar variable X"]` | ❌ |
 | `DICCIONARIO_EXTERNO` | `"data/raw/diccionario.xlsx"` | ❌ |
@@ -34,14 +34,14 @@ PROJECT_ROOT   = Path(".")
 TARGET_COL     = "default_90d"
 TIPO_PROBLEMA  = "clasificacion_binaria"
 METRICA_JURADO = "roc_auc"
-DATA_PATHS     = [PROJECT_ROOT / "dataInicial" / "clientes_entrenamiento.csv"]
+DATA_PATHS     = [PROJECT_ROOT / "dataInicial" / "[archivo_train_provisto]"]
 ID_COLS        = ["id_cliente"]
-VALIDATION_STRATEGY = "temporal_split"  # ideal para solicitudes 2022-2024 vs 2026 de test
+VALIDATION_STRATEGY = "stratified_split"  # cambiar a temporal_split solo si existe fecha/periodo confiable
 PERIODO_COL    = None
 GROUP_COL      = None
 DATE_COLS      = []
 LEAKAGE_COLS   = []                  # variables marcadas como fuga por el Orquestador
-LEAKAGE_REVIEW_DONE = True          # Verificado: sin variables de fuga obvias
+LEAKAGE_REVIEW_DONE = False         # Se marca True solo despues de revisar columnas reales
 FEATURE_BUILDER_PATH = PROJECT_ROOT / "src" / "feature_builder.py"
 RANDOM_STATE   = 42
 ```
@@ -1081,13 +1081,14 @@ features_canal = crear_features_cross_canal(df, familias)
 print(f"✅ Features cross-canal: {features_canal.shape[1]}")
 ```
 
-### D.3 Features de engagement y riesgo
+### D.3 Features de riesgo crediticio y capacidad de pago
 
 ```python
 def crear_features_engagement(df, familias, flag_cols, num_cols, features_canal_df=None):
-    """Crea score de engagement compuesto y features de riesgo."""
+    """Crea features fila a fila de riesgo crediticio sin aprender parametros del dataset completo."""
     fe = pd.DataFrame(index=df.index)
     features_canal_df = features_canal_df if features_canal_df is not None else pd.DataFrame(index=df.index)
+    INGRESO_FLOOR = 800  # piso conservador del caso; evita divisiones explosivas por ingreso nulo/cero
 
     # --- Flags activos (compromiso con productos) ---
     if flag_cols:
@@ -1119,12 +1120,25 @@ def crear_features_engagement(df, familias, flag_cols, num_cols, features_canal_
 
     # 3. Ratio deuda-ingreso (Apalancamiento vs. Capacidad)
     if "saldo_deudor_total" in df.columns and "ingreso_mensual" in df.columns:
-        safe_income = np.where(df["ingreso_mensual"].isna() | (df["ingreso_mensual"] <= 0), 1025, df["ingreso_mensual"])
+        fe["ingreso_missing"] = df["ingreso_mensual"].isna().astype(int)
+        safe_income = df["ingreso_mensual"].fillna(INGRESO_FLOOR).clip(lower=INGRESO_FLOOR)
+        fe["ingreso_mensual_safe"] = safe_income
         fe["ratio_deuda_ingreso"] = df["saldo_deudor_total"] / safe_income
+        fe["ratio_deuda_ingreso_cap"] = fe["ratio_deuda_ingreso"].clip(lower=0, upper=8.5)
+        fe["log_ratio_deuda_ingreso"] = np.log1p(fe["ratio_deuda_ingreso_cap"])
 
     # 4. Capacidad de pago neta (Margen disponible libre de deuda)
     if "ingreso_mensual" in df.columns and "saldo_deudor_total" in df.columns:
-        fe["capacidad_pago_neta"] = df["ingreso_mensual"].fillna(1025) - df["saldo_deudor_total"]
+        fe["capacidad_pago_neta"] = df["ingreso_mensual"].fillna(INGRESO_FLOOR) - df["saldo_deudor_total"]
+
+    # 4b. Ratio de endeudamiento provisto por el caso: capar, no eliminar extremos reales
+    if "ratio_endeudamiento" in df.columns:
+        ratio = df["ratio_endeudamiento"]
+        fe["ratio_endeudamiento_missing"] = ratio.isna().astype(int)
+        fe["ratio_endeudamiento_cap"] = ratio.fillna(0).clip(lower=0, upper=8.5)
+        fe["ratio_endeudamiento_log"] = np.log1p(fe["ratio_endeudamiento_cap"])
+        fe["flag_endeudamiento_medio"] = (fe["ratio_endeudamiento_cap"] > 0.40).astype(int)
+        fe["flag_endeudamiento_alto"] = (fe["ratio_endeudamiento_cap"] > 0.60).astype(int)
 
     # 5. Buró - Flag sin historial crediticio (Tratamiento estratégico del nulo en score_buro)
     if "score_buro" in df.columns:
@@ -1176,17 +1190,12 @@ def crear_features_engagement(df, familias, flag_cols, num_cols, features_canal_
         # 14. Flag indicador de si alguna vez tuvo retrasos
         fe["tiene_atrasos_historicos"] = (fe["atrasos_totales"] > 0).astype(int)
 
-    # 15. Frecuencia de Zona Geográfica (Frequency Encoding robusto contra leakage)
-    if "zona_geografica" in df.columns:
-        fe["zona_freq"] = df["zona_geografica"].map(df["zona_geografica"].value_counts(normalize=True))
-
-    # 16. Frecuencia de Canal de Captación
-    if "canal_captacion" in df.columns:
-        fe["canal_freq"] = df["canal_captacion"].map(df["canal_captacion"].value_counts(normalize=True))
+    # 15. Variables categoricas como zona/canal se entregan crudas al Doc 2.
+    # Frequency encoding, target encoding o WOE deben ajustarse solo con train dentro del pipeline.
 
     # --- Rentabilidad y Score Compuesto Fila a Fila ---
     componentes = []
-    if "buro_score_corregido" in fe.columns:
+    if "score_buro_corregido" in fe.columns:
         componentes.append(0.5 * fe["score_buro_corregido"])
     if "capacidad_pago_neta" in fe.columns:
         componentes.append(0.01 * fe["capacidad_pago_neta"].clip(lower=0))
@@ -1927,7 +1936,7 @@ Antes de cerrar el EDA y pasar al modelado, verificar:
 ### Feature Engineering
 - [ ] Familias temporales detectadas y features creadas
 - [ ] Features cross-canal generadas (si aplica)
-- [ ] Engagement score construido
+- [ ] Score crediticio exploratorio construido sin leakage
 - [ ] Indicadores de missing creados
 - [ ] Features de recencia generadas
 
